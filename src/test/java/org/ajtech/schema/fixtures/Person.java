@@ -1,8 +1,8 @@
-package org.ajtech.schema.fixtures;
+package io.github.jabhijeet.schema.fixtures;
 
-import org.ajtech.schema.annotation.SchemaDecimal;
-import org.ajtech.schema.annotation.SchemaField;
-import org.ajtech.schema.annotation.SchemaIgnore;
+import io.github.jabhijeet.schema.annotation.SchemaDecimal;
+import io.github.jabhijeet.schema.annotation.SchemaField;
+import io.github.jabhijeet.schema.annotation.SchemaIgnore;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -39,3 +39,4 @@ public class Person {
 
     public transient String cachedDisplay;
 }
+

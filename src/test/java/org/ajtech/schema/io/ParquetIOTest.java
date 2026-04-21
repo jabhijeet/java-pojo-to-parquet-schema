@@ -1,4 +1,4 @@
-package org.ajtech.schema.io;
+package io.github.jabhijeet.schema.io;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -79,7 +79,7 @@ class ParquetIOTest {
 
     @Test
     void from_bytes_throws_on_zero_records() {
-        // Write then read with no records — Parquet always has a footer, so the
+        // Write then read with no records â€” Parquet always has a footer, so the
         // file is non-empty, but fromBytes requires at least one record.
         byte[] bytes = ParquetIO.toBytes(SCHEMA, List.of());
         assertThatThrownBy(() -> ParquetIO.fromBytes(bytes))
@@ -140,3 +140,4 @@ class ParquetIOTest {
         assertThat(bytes[bytes.length - 1]).isEqualTo((byte) '1');
     }
 }
+

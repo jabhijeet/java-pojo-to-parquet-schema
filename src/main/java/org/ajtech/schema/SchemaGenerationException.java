@@ -1,4 +1,4 @@
-package org.ajtech.schema;
+package io.github.jabhijeet.schema;
 
 /** Thrown when a POJO cannot be mapped to a schema. */
 public class SchemaGenerationException extends RuntimeException {
@@ -13,3 +13,4 @@ public class SchemaGenerationException extends RuntimeException {
         super(message, cause);
     }
 }
+

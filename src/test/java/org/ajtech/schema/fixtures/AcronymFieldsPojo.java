@@ -1,4 +1,4 @@
-package org.ajtech.schema.fixtures;
+package io.github.jabhijeet.schema.fixtures;
 
 /** Fixture covering snake/kebab/camel conversion edge cases with acronyms. */
 public class AcronymFieldsPojo {
@@ -7,3 +7,4 @@ public class AcronymFieldsPojo {
     public String httpURLConnection;
     public String field2Name;
 }
+

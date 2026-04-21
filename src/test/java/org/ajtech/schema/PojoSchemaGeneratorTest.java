@@ -1,11 +1,11 @@
-package org.ajtech.schema;
+package io.github.jabhijeet.schema;
 
-import org.ajtech.schema.fixtures.Address;
-import org.ajtech.schema.fixtures.Color;
-import org.ajtech.schema.fixtures.Employee;
-import org.ajtech.schema.fixtures.Node;
-import org.ajtech.schema.fixtures.NonStringKeyMap;
-import org.ajtech.schema.fixtures.Person;
+import io.github.jabhijeet.schema.fixtures.Address;
+import io.github.jabhijeet.schema.fixtures.Color;
+import io.github.jabhijeet.schema.fixtures.Employee;
+import io.github.jabhijeet.schema.fixtures.Node;
+import io.github.jabhijeet.schema.fixtures.NonStringKeyMap;
+import io.github.jabhijeet.schema.fixtures.Person;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -23,7 +23,7 @@ class PojoSchemaGeneratorTest {
 
         assertThat(s.getType()).isEqualTo(Schema.Type.RECORD);
         assertThat(s.getName()).isEqualTo("Address");
-        assertThat(s.getNamespace()).isEqualTo("org.ajtech.schema.fixtures");
+        assertThat(s.getNamespace()).isEqualTo("io.github.jabhijeet.schema.fixtures");
     }
 
     @Test
@@ -201,3 +201,4 @@ class PojoSchemaGeneratorTest {
                 .orElseThrow();
     }
 }
+

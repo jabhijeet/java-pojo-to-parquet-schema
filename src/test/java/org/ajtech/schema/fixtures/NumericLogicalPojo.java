@@ -1,6 +1,6 @@
-package org.ajtech.schema.fixtures;
+package io.github.jabhijeet.schema.fixtures;
 
-import org.ajtech.schema.annotation.SchemaDecimal;
+import io.github.jabhijeet.schema.annotation.SchemaDecimal;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -16,3 +16,4 @@ public class NumericLogicalPojo {
 
     public BigInteger bigInt;
 }
+

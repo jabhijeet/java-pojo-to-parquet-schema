@@ -1,8 +1,8 @@
-package org.ajtech.schema.parquet;
+package io.github.jabhijeet.schema.parquet;
 
-import org.ajtech.schema.PojoSchemaGenerator;
-import org.ajtech.schema.fixtures.CollectionsPojo;
-import org.ajtech.schema.fixtures.NestedCollectionsPojo;
+import io.github.jabhijeet.schema.PojoSchemaGenerator;
+import io.github.jabhijeet.schema.fixtures.CollectionsPojo;
+import io.github.jabhijeet.schema.fixtures.NestedCollectionsPojo;
 import org.apache.parquet.schema.GroupType;
 import org.apache.parquet.schema.LogicalTypeAnnotation.ListLogicalTypeAnnotation;
 import org.apache.parquet.schema.LogicalTypeAnnotation.MapLogicalTypeAnnotation;
@@ -12,10 +12,10 @@ import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
 import org.apache.parquet.schema.Type;
 import org.junit.jupiter.api.Test;
 
-import static org.ajtech.schema.parquet.ParquetTestSupport.group;
-import static org.ajtech.schema.parquet.ParquetTestSupport.listElement;
-import static org.ajtech.schema.parquet.ParquetTestSupport.mapKey;
-import static org.ajtech.schema.parquet.ParquetTestSupport.mapValue;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.group;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.listElement;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.mapKey;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.mapValue;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CollectionsParquetTest {
@@ -115,3 +115,4 @@ class CollectionsParquetTest {
                 .contains("street", "city", "postalCode");
     }
 }
+

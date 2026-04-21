@@ -1,4 +1,4 @@
-package org.ajtech.schema.fixtures;
+package io.github.jabhijeet.schema.fixtures;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -18,3 +18,4 @@ public class TemporalTypesPojo {
     public java.util.Date utilDate;
     public java.sql.Timestamp sqlTimestamp;
 }
+

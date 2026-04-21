@@ -1,7 +1,7 @@
-package org.ajtech.schema.parquet;
+package io.github.jabhijeet.schema.parquet;
 
-import org.ajtech.schema.PojoSchemaGenerator;
-import org.ajtech.schema.fixtures.AnnotatedPojo;
+import io.github.jabhijeet.schema.PojoSchemaGenerator;
+import io.github.jabhijeet.schema.fixtures.AnnotatedPojo;
 import org.apache.parquet.schema.LogicalTypeAnnotation.DecimalLogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
@@ -9,7 +9,7 @@ import org.apache.parquet.schema.Type;
 import org.apache.parquet.schema.Type.Repetition;
 import org.junit.jupiter.api.Test;
 
-import static org.ajtech.schema.parquet.ParquetTestSupport.primitive;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.primitive;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AnnotationBehaviourParquetTest {
@@ -63,3 +63,4 @@ class AnnotationBehaviourParquetTest {
         assertThat(strict.getType("retryCount").getRepetition()).isEqualTo(Repetition.OPTIONAL);
     }
 }
+

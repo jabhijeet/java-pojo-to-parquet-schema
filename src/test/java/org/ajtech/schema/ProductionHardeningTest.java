@@ -1,7 +1,7 @@
-package org.ajtech.schema;
+package io.github.jabhijeet.schema;
 
-import org.ajtech.schema.fixtures.AcronymFieldsPojo;
-import org.ajtech.schema.fixtures.DefaultValuesPojo;
+import io.github.jabhijeet.schema.fixtures.AcronymFieldsPojo;
+import io.github.jabhijeet.schema.fixtures.DefaultValuesPojo;
 import org.apache.avro.Schema;
 import org.apache.parquet.schema.MessageType;
 import org.junit.jupiter.api.Test;
@@ -60,7 +60,7 @@ class ProductionHardeningTest {
                 .build();
         Schema schema = gen.generateAvro(DefaultValuesPojo.class);
 
-        // Primitive float — must not be nullable, and the default must be a Float
+        // Primitive float â€” must not be nullable, and the default must be a Float
         // so it agrees with the schema's FLOAT type. Passing a Double would make
         // some Avro paths reject the schema.
         Schema.Field ratio = schema.getField("ratio");
@@ -115,3 +115,4 @@ class ProductionHardeningTest {
                 .hasMessageContaining("pojoClass");
     }
 }
+

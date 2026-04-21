@@ -1,4 +1,4 @@
-package org.ajtech.schema;
+package io.github.jabhijeet.schema;
 
 /**
  * Defines the caching strategy for schema generation.

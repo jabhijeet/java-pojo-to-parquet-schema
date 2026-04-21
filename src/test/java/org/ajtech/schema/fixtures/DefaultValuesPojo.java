@@ -1,4 +1,4 @@
-package org.ajtech.schema.fixtures;
+package io.github.jabhijeet.schema.fixtures;
 
 /**
  * Fixture for exercising {@code SchemaOptions.preserveDefaultValues()}. Every
@@ -15,3 +15,4 @@ public class DefaultValuesPojo {
     public Integer boxedCount = 11;
     public String nullableLabel = "world";
 }
+

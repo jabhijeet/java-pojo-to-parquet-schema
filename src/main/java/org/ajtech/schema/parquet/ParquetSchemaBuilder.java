@@ -1,8 +1,8 @@
-package org.ajtech.schema.parquet;
+package io.github.jabhijeet.schema.parquet;
 
-import org.ajtech.schema.SchemaGenerationException;
-import org.ajtech.schema.SchemaOptions;
-import org.ajtech.schema.avro.AvroSchemaBuilder;
+import io.github.jabhijeet.schema.SchemaGenerationException;
+import io.github.jabhijeet.schema.SchemaOptions;
+import io.github.jabhijeet.schema.avro.AvroSchemaBuilder;
 import org.apache.avro.Schema;
 import org.apache.parquet.avro.AvroSchemaConverter;
 import org.apache.parquet.schema.MessageType;
@@ -14,7 +14,7 @@ import java.util.Set;
  * Produces a Parquet {@link MessageType} by first generating an Avro
  * {@link Schema} and then delegating to Parquet's {@link AvroSchemaConverter}.
  *
- * <p>Uses parquet-avro's default LIST encoding (legacy 2-level, {@code repeated … array}).
+ * <p>Uses parquet-avro's default LIST encoding (legacy 2-level, {@code repeated â€¦ array}).
  * All modern Parquet readers accept both 2-level and 3-level encodings, so this is
  * the no-friction choice that avoids pulling in hadoop-common.
  *
@@ -68,7 +68,8 @@ public final class ParquetSchemaBuilder {
             }
             case ARRAY -> detectCycle(schema.getElementType(), stack, rootType);
             case MAP -> detectCycle(schema.getValueType(), stack, rootType);
-            default -> { /* primitive or logical — nothing to walk */ }
+            default -> { /* primitive or logical â€” nothing to walk */ }
         }
     }
 }
+

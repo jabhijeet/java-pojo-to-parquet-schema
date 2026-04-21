@@ -1,6 +1,6 @@
-package org.ajtech.schema.cache;
+package io.github.jabhijeet.schema.cache;
 
-import org.ajtech.schema.SchemaOptions;
+import io.github.jabhijeet.schema.SchemaOptions;
 import org.apache.avro.Schema;
 import org.apache.parquet.schema.MessageType;
 

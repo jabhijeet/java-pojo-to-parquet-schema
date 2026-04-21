@@ -1,4 +1,4 @@
-package org.ajtech.schema;
+package io.github.jabhijeet.schema;
 
 /**
  * Strategy for handling timezone information in temporal fields.

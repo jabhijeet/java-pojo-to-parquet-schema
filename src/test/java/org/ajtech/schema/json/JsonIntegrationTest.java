@@ -1,7 +1,7 @@
-package org.ajtech.schema.json;
+package io.github.jabhijeet.schema.json;
 
-import org.ajtech.schema.io.AvroIO;
-import org.ajtech.schema.io.ParquetIO;
+import io.github.jabhijeet.schema.io.AvroIO;
+import io.github.jabhijeet.schema.io.ParquetIO;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -17,7 +17,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * End-to-end tests: JSON string → bytes (Avro or Parquet) → read back → verify values.
+ * End-to-end tests: JSON string â†’ bytes (Avro or Parquet) â†’ read back â†’ verify values.
  *
  * <p>All I/O is in-memory. Uses {@link JsonIO} as the public entry point.
  */
@@ -29,7 +29,7 @@ class JsonIntegrationTest {
             {
               "type": "record",
               "name": "Order",
-              "namespace": "org.ajtech.test",
+              "namespace": "io.github.jabhijeet.test",
               "fields": [
                 {"name": "orderId",    "type": {"type": "string", "logicalType": "uuid"}},
                 {"name": "customerId", "type": "string"},
@@ -38,7 +38,7 @@ class JsonIntegrationTest {
                 {"name": "placedAt",   "type": {"type": "long", "logicalType": "timestamp-millis"}},
                 {"name": "items",      "type": {"type": "array", "items": {
                   "type": "record", "name": "OrderItem",
-                  "namespace": "org.ajtech.test",
+                  "namespace": "io.github.jabhijeet.test",
                   "fields": [
                     {"name": "sku",      "type": "string"},
                     {"name": "qty",      "type": "int"},
@@ -69,7 +69,7 @@ class JsonIntegrationTest {
             {
               "type": "record",
               "name": "Event",
-              "namespace": "org.ajtech.test",
+              "namespace": "io.github.jabhijeet.test",
               "fields": [
                 {"name": "eventType", "type": "string"},
                 {"name": "ts",        "type": {"type": "long", "logicalType": "local-timestamp-millis"}},
@@ -120,7 +120,7 @@ class JsonIntegrationTest {
         assertThat(new Conversions.DecimalConversion().fromBytes(up0.duplicate(), unitPriceSchema, upDec))
                 .isEqualByComparingTo(new BigDecimal("49.99"));
 
-        // Verify map — GenericDatumReader returns Utf8 keys, not String
+        // Verify map â€” GenericDatumReader returns Utf8 keys, not String
         @SuppressWarnings("unchecked")
         java.util.Map<Object, Object> tags = (java.util.Map<Object, Object>) order.get("tags");
         assertThat(tags.get(new Utf8("source")).toString()).isEqualTo("web");
@@ -263,3 +263,4 @@ class JsonIntegrationTest {
         assertThat(records.get(0).get("customerId").toString()).isEqualTo("E");
     }
 }
+

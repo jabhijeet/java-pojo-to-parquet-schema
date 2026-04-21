@@ -1,4 +1,4 @@
-package org.ajtech.schema.io;
+package io.github.jabhijeet.schema.io;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
@@ -28,11 +28,11 @@ import java.util.Objects;
  * means consumers do not need to supply the schema to read.
  *
  * <p>Every method closes the resources it creates. Streams passed in by the caller
- * are flushed but not closed — the caller owns them.
+ * are flushed but not closed â€” the caller owns them.
  */
 public final class AvroIO {
 
-    /** Default Avro file compression — snappy is widely supported and offers a good ratio/speed trade-off. */
+    /** Default Avro file compression â€” snappy is widely supported and offers a good ratio/speed trade-off. */
     public static final CodecFactory DEFAULT_CODEC = CodecFactory.snappyCodec();
 
     private AvroIO() {
@@ -70,7 +70,7 @@ public final class AvroIO {
 
     /**
      * Writes records as an Avro Object Container File to the supplied stream.
-     * Flushes but does not close {@code out} — the caller owns the stream.
+     * Flushes but does not close {@code out} â€” the caller owns the stream.
      */
     public static void writeTo(Schema schema, Collection<? extends GenericRecord> records, OutputStream out) {
         writeTo(schema, records, out, DEFAULT_CODEC);
@@ -78,7 +78,7 @@ public final class AvroIO {
 
     /**
      * Writes records as an Avro Object Container File to the supplied stream with a specific codec.
-     * Flushes but does not close {@code out} — the caller owns the stream.
+     * Flushes but does not close {@code out} â€” the caller owns the stream.
      */
     public static void writeTo(Schema schema,
                                Collection<? extends GenericRecord> records,
@@ -128,7 +128,7 @@ public final class AvroIO {
         try (SeekableByteArrayInput seekableInput = new SeekableByteArrayInput(avroBytes);
              DataFileReader<GenericRecord> fileReader = new DataFileReader<>(seekableInput, datumReader)) {
             while (fileReader.hasNext()) {
-                // Pass null to force a fresh record per iteration — Avro reuses the
+                // Pass null to force a fresh record per iteration â€” Avro reuses the
                 // returned object otherwise, which caused sneaky aliasing bugs.
                 out.add(fileReader.next(null));
             }
@@ -151,3 +151,4 @@ public final class AvroIO {
         }
     }
 }
+

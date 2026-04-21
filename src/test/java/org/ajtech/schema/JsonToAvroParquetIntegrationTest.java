@@ -1,13 +1,13 @@
-package org.ajtech.schema;
+package io.github.jabhijeet.schema;
 
-import org.ajtech.schema.fixtures.Address;
-import org.ajtech.schema.fixtures.AllPrimitivesPojo;
-import org.ajtech.schema.fixtures.ArrayTypesPojo;
-import org.ajtech.schema.fixtures.NestedCollectionsPojo;
-import org.ajtech.schema.io.AvroIO;
-import org.ajtech.schema.io.InMemoryInputFile;
-import org.ajtech.schema.io.InMemoryOutputFile;
-import org.ajtech.schema.io.ParquetIO;
+import io.github.jabhijeet.schema.fixtures.Address;
+import io.github.jabhijeet.schema.fixtures.AllPrimitivesPojo;
+import io.github.jabhijeet.schema.fixtures.ArrayTypesPojo;
+import io.github.jabhijeet.schema.fixtures.NestedCollectionsPojo;
+import io.github.jabhijeet.schema.io.AvroIO;
+import io.github.jabhijeet.schema.io.InMemoryInputFile;
+import io.github.jabhijeet.schema.io.InMemoryOutputFile;
+import io.github.jabhijeet.schema.io.ParquetIO;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.file.SeekableByteArrayInput;
@@ -41,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Integration tests that verify generated Avro and Parquet schemas can be used
  * to write and read real data for various POJO structures.
  *
- * <p>All I/O is fully in-memory — no filesystem, no {@code HADOOP_HOME} required.
+ * <p>All I/O is fully in-memory â€” no filesystem, no {@code HADOOP_HOME} required.
  * Avro reads use {@link GenericDatumReader} (not reflect) so field access returns a
  * {@link GenericRecord}. Strings are configured to deserialize as {@link String}
  * rather than {@link org.apache.avro.util.Utf8}. Parquet I/O goes through
@@ -156,7 +156,7 @@ class JsonToAvroParquetIntegrationTest {
         bb.get(byteArray);
         assertThat(byteArray).containsExactly((byte) 0x01, (byte) 0x02, (byte) 0x03);
 
-        // Parquet round-trip — ReflectData model for writing, GenericData for reading
+        // Parquet round-trip â€” ReflectData model for writing, GenericData for reading
         InMemoryOutputFile outFile = new InMemoryOutputFile();
         try (ParquetWriter<ArrayTypesPojo> writer = AvroParquetWriter.<ArrayTypesPojo>builder(outFile)
                 .withSchema(avroSchema)
@@ -312,3 +312,4 @@ class JsonToAvroParquetIntegrationTest {
         }
     }
 }
+

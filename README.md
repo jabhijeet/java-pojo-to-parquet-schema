@@ -1,4 +1,4 @@
-# java-pojo-to-parquet-schema
+﻿# java-pojo-to-parquet-schema
 
 A zero-boilerplate Java  library with two capabilities:
 
@@ -24,7 +24,7 @@ Most data-pipeline tools (Avro, Parquet, Spark, Flink, Kafka Connect) need schem
 **Maven coordinates:**
 ```xml
 <dependency>
-    <groupId>org.ajtech</groupId>
+    <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
     <version>1.1.0-SNAPSHOT</version>
 </dependency>
@@ -32,12 +32,12 @@ Most data-pipeline tools (Avro, Parquet, Spark, Flink, Kafka Connect) need schem
 
 **Gradle (Kotlin DSL):**
 ```kotlin
-implementation("org.ajtech:java-pojo-to-parquet-schema:1.1.0-SNAPSHOT")
+implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:1.1.0-SNAPSHOT")
 ```
 
 **Gradle (Groovy DSL):**
 ```groovy
-implementation 'org.ajtech:java-pojo-to-parquet-schema:1.1.0-SNAPSHOT'
+implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:1.1.0-SNAPSHOT'
 ```
 
 Transitive dependencies pulled in:
@@ -58,7 +58,7 @@ Transitive dependencies pulled in:
 ### Quick start
 
 ```java
-import org.ajtech.schema.PojoSchemaGenerator;
+import io.github.jabhijeet.schema.PojoSchemaGenerator;
 import org.apache.avro.Schema;
 import org.apache.parquet.schema.MessageType;
 
@@ -138,13 +138,13 @@ default value so they agree with the schema's `FLOAT` type.
 
 ### Annotations
 
-All annotations live in `org.ajtech.schema.annotation`.
+All annotations live in `io.github.jabhijeet.schema.annotation`.
 
 #### `@SchemaField` — rename, document, or force nullability
 
 ```java
-import org.ajtech.schema.annotation.SchemaField;
-import org.ajtech.schema.annotation.SchemaField.Nullability;
+import io.github.jabhijeet.schema.annotation.SchemaField;
+import io.github.jabhijeet.schema.annotation.SchemaField.Nullability;
 
 public class Contact {
     @SchemaField(name = "email_address", doc = "Primary contact email")
@@ -160,7 +160,7 @@ public class Contact {
 #### `@SchemaIgnore` — skip a field entirely
 
 ```java
-import org.ajtech.schema.annotation.SchemaIgnore;
+import io.github.jabhijeet.schema.annotation.SchemaIgnore;
 
 public class Session {
     public String id;
@@ -177,7 +177,7 @@ public class Session {
 Avro requires both values at schema time; use this whenever the defaults aren't right.
 
 ```java
-import org.ajtech.schema.annotation.SchemaDecimal;
+import io.github.jabhijeet.schema.annotation.SchemaDecimal;
 import java.math.BigDecimal;
 
 public class Invoice {
@@ -235,8 +235,8 @@ Avro happily represents recursive records (`Node → List<Node>`), but the Parqu
 ### One-call conversion with `JsonIO`
 
 ```java
-import org.ajtech.schema.json.JsonIO;
-import org.ajtech.schema.PojoSchemaGenerator;
+import io.github.jabhijeet.schema.json.JsonIO;
+import io.github.jabhijeet.schema.PojoSchemaGenerator;
 import org.apache.avro.Schema;
 
 // 1. Get (or build) an Avro schema
@@ -258,8 +258,8 @@ byte[] parquetBatch = JsonIO.toParquetBytesAll(batch, schema);
 ### Reading back with `AvroIO` / `ParquetIO`
 
 ```java
-import org.ajtech.schema.io.AvroIO;
-import org.ajtech.schema.io.ParquetIO;
+import io.github.jabhijeet.schema.io.AvroIO;
+import io.github.jabhijeet.schema.io.ParquetIO;
 import org.apache.avro.generic.GenericRecord;
 import java.util.List;
 

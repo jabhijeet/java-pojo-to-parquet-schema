@@ -1,4 +1,4 @@
-package org.ajtech.schema;
+package io.github.jabhijeet.schema;
 
 /**
  * Precision for timestamp fields in generated schemas.

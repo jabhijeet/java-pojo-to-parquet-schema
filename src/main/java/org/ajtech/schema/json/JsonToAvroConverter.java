@@ -1,4 +1,4 @@
-package org.ajtech.schema.json;
+package io.github.jabhijeet.schema.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,18 +47,18 @@ import java.util.UUID;
  *
  * <h2>Type mapping</h2>
  * <ul>
- *   <li>Avro {@code null / boolean / int / long / float / double} → JSON scalar of matching kind.
+ *   <li>Avro {@code null / boolean / int / long / float / double} â†’ JSON scalar of matching kind.
  *       Integer JSON numbers fit into {@code float/double} as well.</li>
- *   <li>Avro {@code string} → JSON string. {@code uuid} logical type requires a
+ *   <li>Avro {@code string} â†’ JSON string. {@code uuid} logical type requires a
  *       canonical {@link UUID} string.</li>
- *   <li>Avro {@code bytes / fixed} → JSON string encoded with standard Base64
+ *   <li>Avro {@code bytes / fixed} â†’ JSON string encoded with standard Base64
  *       (no line wrapping). {@code decimal} bytes accept either a JSON number or
  *       a numeric JSON string and honor the schema's scale and precision.</li>
- *   <li>Avro {@code enum} → JSON string matching one of the schema's symbols.</li>
- *   <li>Avro {@code array} → JSON array; elements recurse against the element schema.</li>
- *   <li>Avro {@code map} → JSON object with string keys.</li>
- *   <li>Avro {@code record} → JSON object; unknown JSON fields are ignored.</li>
- *   <li>Avro {@code union} → the first branch whose shape fits; {@code null}
+ *   <li>Avro {@code enum} â†’ JSON string matching one of the schema's symbols.</li>
+ *   <li>Avro {@code array} â†’ JSON array; elements recurse against the element schema.</li>
+ *   <li>Avro {@code map} â†’ JSON object with string keys.</li>
+ *   <li>Avro {@code record} â†’ JSON object; unknown JSON fields are ignored.</li>
+ *   <li>Avro {@code union} â†’ the first branch whose shape fits; {@code null}
  *       JSON values match a union containing {@code null}.</li>
  *   <li>Date / time / timestamp logical types accept either their raw numeric
  *       representation (e.g. epoch millis) or an ISO-8601 string.</li>
@@ -184,7 +184,7 @@ public final class JsonToAvroConverter {
     // ---------------------------------------------------------------- walker
 
     private Object convertNode(JsonNode node, Schema schema, String path) {
-        // Handle unions up front — pick the branch that fits.
+        // Handle unions up front â€” pick the branch that fits.
         if (schema.getType() == Schema.Type.UNION) {
             return convertUnion(node, schema, path);
         }
@@ -280,7 +280,7 @@ public final class JsonToAvroConverter {
                     "JSON null is not permitted by union " + unionSummary(union));
         }
 
-        // Prefer a branch that clearly matches the node shape — walk non-null
+        // Prefer a branch that clearly matches the node shape â€” walk non-null
         // branches in schema order, trying each. Catch conversion errors so we
         // can fall back to the next branch. If all fail, report against the
         // best-matching branch to give the user a useful error.
@@ -386,7 +386,7 @@ public final class JsonToAvroConverter {
 
     private static String asString(JsonNode node, String path) {
         if (node.isTextual()) return node.textValue();
-        // Numbers/booleans can be coerced to their lexical form — pragmatic and
+        // Numbers/booleans can be coerced to their lexical form â€” pragmatic and
         // matches how most consumers think about "stringy" JSON.
         if (node.isNumber() || node.isBoolean()) return node.asText();
         throw new JsonConversionException(path,
@@ -544,7 +544,7 @@ public final class JsonToAvroConverter {
 
     private static Instant parseInstant(String s, String path) {
         try {
-            // Accept either a pure Instant (…Z) or offset date-time (…+HH:mm).
+            // Accept either a pure Instant (â€¦Z) or offset date-time (â€¦+HH:mm).
             try {
                 return Instant.parse(s);
             } catch (DateTimeParseException ignore) {
@@ -659,7 +659,7 @@ public final class JsonToAvroConverter {
 
     /**
      * Returns a standalone {@link ObjectNode} builder useful in tests/examples.
-     * @hidden — internal helper, not part of the stable API surface.
+     * @hidden â€” internal helper, not part of the stable API surface.
      */
     static ObjectNode newObjectNode() {
         return JsonNodeFactory.instance.objectNode();
@@ -673,3 +673,4 @@ public final class JsonToAvroConverter {
         return Objects.requireNonNull(json, "json").getBytes(StandardCharsets.UTF_8);
     }
 }
+

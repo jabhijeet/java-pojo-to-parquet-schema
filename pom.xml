@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.ajtech</groupId>
+    <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
     <version>1.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
@@ -14,7 +14,7 @@
         Reflection-based Java library that converts POJOs into Apache Avro and Apache Parquet schemas,
         and converts JSON documents into Avro or Parquet bytes in memory without requiring a filesystem.
     </description>
-    <url>https://github.com/ajtech/java-pojo-to-parquet-schema</url>
+    <url>https://github.com/jabhijeet/java-pojo-to-parquet-schema</url>
     <inceptionYear>2025</inceptionYear>
 
     <licenses>
@@ -27,22 +27,22 @@
 
     <developers>
         <developer>
-            <id>ajtech</id>
+            <id>jabhijeet</id>
             <name>AJ Tech</name>
-            <email>ajtech@example.com</email>
+            <email>jabhijeet@example.com</email>
         </developer>
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/ajtech/java-pojo-to-parquet-schema.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/ajtech/java-pojo-to-parquet-schema.git</developerConnection>
-        <url>https://github.com/ajtech/java-pojo-to-parquet-schema</url>
+        <connection>scm:git:git://github.com/jabhijeet/java-pojo-to-parquet-schema.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/jabhijeet/java-pojo-to-parquet-schema.git</developerConnection>
+        <url>https://github.com/jabhijeet/java-pojo-to-parquet-schema</url>
         <tag>HEAD</tag>
     </scm>
 
     <issueManagement>
         <system>GitHub Issues</system>
-        <url>https://github.com/ajtech/java-pojo-to-parquet-schema/issues</url>
+        <url>https://github.com/jabhijeet/java-pojo-to-parquet-schema/issues</url>
     </issueManagement>
 
     <distributionManagement>
@@ -245,6 +245,37 @@
             <id>release</id>
             <build>
                 <plugins>
+                    <!-- 1. Generate Source JAR -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${maven.source.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- 2. Generate Javadoc JAR -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${maven.javadoc.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- 3. Sign Artifacts with GPG -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
@@ -265,6 +296,8 @@
                             </execution>
                         </executions>
                     </plugin>
+
+                    <!-- 4. Deploy to Central Portal -->
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>

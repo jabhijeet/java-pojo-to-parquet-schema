@@ -1,7 +1,7 @@
-package org.ajtech.schema.parquet;
+package io.github.jabhijeet.schema.parquet;
 
-import org.ajtech.schema.PojoSchemaGenerator;
-import org.ajtech.schema.fixtures.ArrayTypesPojo;
+import io.github.jabhijeet.schema.PojoSchemaGenerator;
+import io.github.jabhijeet.schema.fixtures.ArrayTypesPojo;
 import org.apache.parquet.schema.GroupType;
 import org.apache.parquet.schema.LogicalTypeAnnotation.ListLogicalTypeAnnotation;
 import org.apache.parquet.schema.LogicalTypeAnnotation.StringLogicalTypeAnnotation;
@@ -11,9 +11,9 @@ import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
 import org.apache.parquet.schema.Type;
 import org.junit.jupiter.api.Test;
 
-import static org.ajtech.schema.parquet.ParquetTestSupport.group;
-import static org.ajtech.schema.parquet.ParquetTestSupport.listElement;
-import static org.ajtech.schema.parquet.ParquetTestSupport.primitive;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.group;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.listElement;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.primitive;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ArrayTypesParquetTest {
@@ -78,3 +78,4 @@ class ArrayTypesParquetTest {
         assertThat(pt.getLogicalTypeAnnotation()).isNull();
     }
 }
+

@@ -1,8 +1,8 @@
-package org.ajtech.schema.parquet;
+package io.github.jabhijeet.schema.parquet;
 
-import org.ajtech.schema.PojoSchemaGenerator;
-import org.ajtech.schema.fixtures.NumericLogicalPojo;
-import org.ajtech.schema.fixtures.TemporalTypesPojo;
+import io.github.jabhijeet.schema.PojoSchemaGenerator;
+import io.github.jabhijeet.schema.fixtures.NumericLogicalPojo;
+import io.github.jabhijeet.schema.fixtures.TemporalTypesPojo;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.LogicalTypeAnnotation.DateLogicalTypeAnnotation;
 import org.apache.parquet.schema.LogicalTypeAnnotation.DecimalLogicalTypeAnnotation;
@@ -14,7 +14,7 @@ import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
 import org.junit.jupiter.api.Test;
 
-import static org.ajtech.schema.parquet.ParquetTestSupport.primitive;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.primitive;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class LogicalTypesParquetTest {
@@ -113,3 +113,4 @@ class LogicalTypesParquetTest {
         assertThat(t.getLogicalTypeAnnotation()).isNotNull();
     }
 }
+

@@ -1,4 +1,4 @@
-package org.ajtech.schema.json;
+package io.github.jabhijeet.schema.json;
 
 /**
  * Thrown when a JSON document cannot be converted to an Avro {@code GenericRecord}
@@ -34,3 +34,4 @@ public class JsonConversionException extends RuntimeException {
         return (path == null || path.isEmpty() ? "$" : path) + ": " + message;
     }
 }
+

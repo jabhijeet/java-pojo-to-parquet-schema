@@ -1,4 +1,4 @@
-package org.ajtech.schema.parquet;
+package io.github.jabhijeet.schema.parquet;
 
 import org.apache.parquet.schema.GroupType;
 import org.apache.parquet.schema.PrimitiveType;
@@ -44,3 +44,4 @@ final class ParquetTestSupport {
         return mapField.getType("key_value").asGroupType().getType("value");
     }
 }
+

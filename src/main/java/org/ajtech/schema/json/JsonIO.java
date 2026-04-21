@@ -1,7 +1,7 @@
-package org.ajtech.schema.json;
+package io.github.jabhijeet.schema.json;
 
-import org.ajtech.schema.io.AvroIO;
-import org.ajtech.schema.io.ParquetIO;
+import io.github.jabhijeet.schema.io.AvroIO;
+import io.github.jabhijeet.schema.io.ParquetIO;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
@@ -12,9 +12,9 @@ import java.util.Objects;
 /**
  * One-call facade for converting JSON documents into Avro or Parquet bytes.
  *
- * <p>Combines {@link JsonToAvroConverter} (JSON → {@link GenericRecord}) with
- * {@link AvroIO} / {@link ParquetIO} (GenericRecord → binary).  All operations
- * are fully in-memory — no filesystem, no {@code HADOOP_HOME} required.
+ * <p>Combines {@link JsonToAvroConverter} (JSON â†’ {@link GenericRecord}) with
+ * {@link AvroIO} / {@link ParquetIO} (GenericRecord â†’ binary).  All operations
+ * are fully in-memory â€” no filesystem, no {@code HADOOP_HOME} required.
  *
  * <p>A single shared {@link JsonToAvroConverter} instance is used internally;
  * it is stateless and thread-safe.
@@ -43,7 +43,7 @@ public final class JsonIO {
         // utility
     }
 
-    // ---------------------------------------------------------------- JSON → record
+    // ---------------------------------------------------------------- JSON â†’ record
 
     /**
      * Parses {@code json} into a {@link GenericRecord} that conforms to {@code schema}.
@@ -79,7 +79,7 @@ public final class JsonIO {
         return CONVERTER.convertAll(json, schema);
     }
 
-    // ---------------------------------------------------------------- JSON → Avro bytes
+    // ---------------------------------------------------------------- JSON â†’ Avro bytes
 
     /**
      * Converts a single JSON document to an Avro Object Container File and returns the bytes.
@@ -104,7 +104,7 @@ public final class JsonIO {
         return AvroIO.toBytes(schema, toRecords(json, schema));
     }
 
-    // ---------------------------------------------------------------- JSON → Parquet bytes
+    // ---------------------------------------------------------------- JSON â†’ Parquet bytes
 
     /**
      * Converts a single JSON document to Parquet bytes using the default codec (Snappy).
@@ -129,3 +129,4 @@ public final class JsonIO {
         return ParquetIO.toBytes(schema, toRecords(json, schema));
     }
 }
+

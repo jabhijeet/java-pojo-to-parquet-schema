@@ -1,4 +1,4 @@
-package org.ajtech.schema.io;
+package io.github.jabhijeet.schema.io;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -130,3 +130,4 @@ class AvroIOTest {
                 .hasMessageContaining("null");
     }
 }
+

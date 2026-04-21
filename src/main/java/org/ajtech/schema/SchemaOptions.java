@@ -1,7 +1,7 @@
-package org.ajtech.schema;
+package io.github.jabhijeet.schema;
 
-import org.ajtech.schema.cache.LruSchemaCache;
-import org.ajtech.schema.cache.SchemaCache;
+import io.github.jabhijeet.schema.cache.LruSchemaCache;
+import io.github.jabhijeet.schema.cache.SchemaCache;
 
 import java.util.Objects;
 
@@ -253,3 +253,4 @@ public final class SchemaOptions {
                 fieldNamingStrategy, timestampPrecision, timezoneHandling, preserveDefaultValues);
     }
 }
+

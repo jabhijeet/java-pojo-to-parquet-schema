@@ -1,4 +1,4 @@
-package org.ajtech.schema.annotation;
+package io.github.jabhijeet.schema.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -24,3 +24,4 @@ public @interface SchemaField {
 
     enum Nullability { AUTO, NULLABLE, REQUIRED }
 }
+

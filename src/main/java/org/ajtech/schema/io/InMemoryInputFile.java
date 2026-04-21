@@ -1,4 +1,4 @@
-package org.ajtech.schema.io;
+package io.github.jabhijeet.schema.io;
 
 import org.apache.parquet.io.InputFile;
 import org.apache.parquet.io.SeekableInputStream;
@@ -15,7 +15,7 @@ import java.util.Objects;
  * <p>The input bytes are not copied; the caller must not mutate the provided
  * array for the lifetime of this {@code InMemoryInputFile}.
  *
- * <p>Thread-safe to open multiple {@link SeekableInputStream}s concurrently — each
+ * <p>Thread-safe to open multiple {@link SeekableInputStream}s concurrently â€” each
  * stream maintains its own position.
  */
 public final class InMemoryInputFile implements InputFile {
@@ -168,3 +168,4 @@ public final class InMemoryInputFile implements InputFile {
         }
     }
 }
+

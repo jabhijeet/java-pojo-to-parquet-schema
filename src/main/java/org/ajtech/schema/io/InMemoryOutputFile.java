@@ -1,4 +1,4 @@
-package org.ajtech.schema.io;
+package io.github.jabhijeet.schema.io;
 
 import org.apache.parquet.io.OutputFile;
 import org.apache.parquet.io.PositionOutputStream;
@@ -20,7 +20,7 @@ import java.util.Objects;
  */
 public final class InMemoryOutputFile implements OutputFile {
 
-    private static final long DEFAULT_BLOCK_SIZE = 64L * 1024 * 1024; // 64 MiB — parquet default
+    private static final long DEFAULT_BLOCK_SIZE = 64L * 1024 * 1024; // 64 MiB â€” parquet default
 
     private final ByteArrayOutputStream buffer;
     private final String path;
@@ -156,3 +156,4 @@ public final class InMemoryOutputFile implements OutputFile {
         }
     }
 }
+

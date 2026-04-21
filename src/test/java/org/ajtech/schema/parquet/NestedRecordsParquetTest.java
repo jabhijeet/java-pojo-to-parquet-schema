@@ -1,19 +1,19 @@
-package org.ajtech.schema.parquet;
+package io.github.jabhijeet.schema.parquet;
 
-import org.ajtech.schema.PojoSchemaGenerator;
-import org.ajtech.schema.SchemaGenerationException;
-import org.ajtech.schema.fixtures.DerivedPojo;
-import org.ajtech.schema.fixtures.Node;
-import org.ajtech.schema.fixtures.OuterPojo;
+import io.github.jabhijeet.schema.PojoSchemaGenerator;
+import io.github.jabhijeet.schema.SchemaGenerationException;
+import io.github.jabhijeet.schema.fixtures.DerivedPojo;
+import io.github.jabhijeet.schema.fixtures.Node;
+import io.github.jabhijeet.schema.fixtures.OuterPojo;
 import org.apache.parquet.schema.GroupType;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
 import org.apache.parquet.schema.Type;
 import org.junit.jupiter.api.Test;
 
-import static org.ajtech.schema.parquet.ParquetTestSupport.group;
-import static org.ajtech.schema.parquet.ParquetTestSupport.listElement;
-import static org.ajtech.schema.parquet.ParquetTestSupport.primitive;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.group;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.listElement;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.primitive;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -88,3 +88,4 @@ class NestedRecordsParquetTest {
         assertThat(schema.getType("count").getRepetition()).isEqualTo(Type.Repetition.REQUIRED);
     }
 }
+

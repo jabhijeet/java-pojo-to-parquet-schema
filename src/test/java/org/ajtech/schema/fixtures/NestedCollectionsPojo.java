@@ -1,4 +1,4 @@
-package org.ajtech.schema.fixtures;
+package io.github.jabhijeet.schema.fixtures;
 
 import java.util.List;
 import java.util.Map;
@@ -10,3 +10,4 @@ public class NestedCollectionsPojo {
     public Map<String, Map<String, Double>> nestedMap;
     public List<Address> addresses;
 }
+

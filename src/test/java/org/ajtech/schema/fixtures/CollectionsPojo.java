@@ -1,4 +1,4 @@
-package org.ajtech.schema.fixtures;
+package io.github.jabhijeet.schema.fixtures;
 
 import java.util.Collection;
 import java.util.List;
@@ -11,3 +11,4 @@ public class CollectionsPojo {
     public Collection<Double> readings;
     public Map<String, Long> counts;
 }
+

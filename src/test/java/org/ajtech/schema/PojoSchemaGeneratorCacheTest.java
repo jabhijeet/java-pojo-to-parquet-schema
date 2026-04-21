@@ -1,10 +1,10 @@
-package org.ajtech.schema;
+package io.github.jabhijeet.schema;
 
-import org.ajtech.schema.cache.LruSchemaCache;
-import org.ajtech.schema.cache.SchemaCache;
-import org.ajtech.schema.fixtures.Address;
-import org.ajtech.schema.fixtures.Employee;
-import org.ajtech.schema.fixtures.Person;
+import io.github.jabhijeet.schema.cache.LruSchemaCache;
+import io.github.jabhijeet.schema.cache.SchemaCache;
+import io.github.jabhijeet.schema.fixtures.Address;
+import io.github.jabhijeet.schema.fixtures.Employee;
+import io.github.jabhijeet.schema.fixtures.Person;
 import org.apache.avro.Schema;
 import org.apache.parquet.schema.MessageType;
 import org.junit.jupiter.api.Test;

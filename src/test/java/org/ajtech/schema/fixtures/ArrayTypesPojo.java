@@ -1,4 +1,4 @@
-package org.ajtech.schema.fixtures;
+package io.github.jabhijeet.schema.fixtures;
 
 public class ArrayTypesPojo {
     public int[] ints;
@@ -9,3 +9,4 @@ public class ArrayTypesPojo {
     public Address[] addresses;
     public byte[] bytes;
 }
+

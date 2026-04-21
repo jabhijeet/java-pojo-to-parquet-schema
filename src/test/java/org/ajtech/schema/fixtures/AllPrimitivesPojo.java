@@ -1,4 +1,4 @@
-package org.ajtech.schema.fixtures;
+package io.github.jabhijeet.schema.fixtures;
 
 public class AllPrimitivesPojo {
     public boolean pBool;
@@ -19,3 +19,4 @@ public class AllPrimitivesPojo {
     public Double bDouble;
     public Character bChar;
 }
+

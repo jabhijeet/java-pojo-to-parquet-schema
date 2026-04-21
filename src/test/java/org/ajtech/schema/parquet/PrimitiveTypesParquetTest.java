@@ -1,14 +1,14 @@
-package org.ajtech.schema.parquet;
+package io.github.jabhijeet.schema.parquet;
 
-import org.ajtech.schema.PojoSchemaGenerator;
-import org.ajtech.schema.fixtures.AllPrimitivesPojo;
+import io.github.jabhijeet.schema.PojoSchemaGenerator;
+import io.github.jabhijeet.schema.fixtures.AllPrimitivesPojo;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
 import org.apache.parquet.schema.Type.Repetition;
 import org.junit.jupiter.api.Test;
 
-import static org.ajtech.schema.parquet.ParquetTestSupport.primitive;
+import static io.github.jabhijeet.schema.parquet.ParquetTestSupport.primitive;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PrimitiveTypesParquetTest {
@@ -79,3 +79,4 @@ class PrimitiveTypesParquetTest {
         );
     }
 }
+

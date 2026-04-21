@@ -1,8 +1,8 @@
-package org.ajtech.schema;
+package io.github.jabhijeet.schema;
 
-import org.ajtech.schema.avro.AvroSchemaBuilder;
-import org.ajtech.schema.cache.SchemaCache;
-import org.ajtech.schema.parquet.ParquetSchemaBuilder;
+import io.github.jabhijeet.schema.avro.AvroSchemaBuilder;
+import io.github.jabhijeet.schema.cache.SchemaCache;
+import io.github.jabhijeet.schema.parquet.ParquetSchemaBuilder;
 import org.apache.avro.Schema;
 import org.apache.parquet.schema.MessageType;
 
@@ -206,3 +206,4 @@ public final class PojoSchemaGenerator {
         }
     }
 }
+

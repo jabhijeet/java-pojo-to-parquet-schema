@@ -1,12 +1,12 @@
-package org.ajtech.schema.avro;
+package io.github.jabhijeet.schema.avro;
 
-import org.ajtech.schema.FieldNamingStrategy;
-import org.ajtech.schema.SchemaGenerationException;
-import org.ajtech.schema.SchemaOptions;
-import org.ajtech.schema.TimestampPrecision;
-import org.ajtech.schema.annotation.SchemaDecimal;
-import org.ajtech.schema.annotation.SchemaField;
-import org.ajtech.schema.annotation.SchemaIgnore;
+import io.github.jabhijeet.schema.FieldNamingStrategy;
+import io.github.jabhijeet.schema.SchemaGenerationException;
+import io.github.jabhijeet.schema.SchemaOptions;
+import io.github.jabhijeet.schema.TimestampPrecision;
+import io.github.jabhijeet.schema.annotation.SchemaDecimal;
+import io.github.jabhijeet.schema.annotation.SchemaField;
+import io.github.jabhijeet.schema.annotation.SchemaIgnore;
 import org.apache.avro.JsonProperties;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -40,7 +40,7 @@ import java.util.UUID;
  *
  * <p>Instances are cheap but stateful during a single {@link #build(Class)} call
  * (they maintain a record cache for shared/self-referential types). Use a new
- * instance per call — or the facade {@code PojoSchemaGenerator}, which does this.
+ * instance per call â€” or the facade {@code PojoSchemaGenerator}, which does this.
  */
 public final class AvroSchemaBuilder {
 
@@ -383,8 +383,8 @@ public final class AvroSchemaBuilder {
      *
      * <p>Word boundaries:
      * <ul>
-     *   <li>between a lowercase/digit and an uppercase letter ({@code myField → my_field})</li>
-     *   <li>between the end of an acronym and the next word ({@code XMLParser → xml_parser})</li>
+     *   <li>between a lowercase/digit and an uppercase letter ({@code myField â†’ my_field})</li>
+     *   <li>between the end of an acronym and the next word ({@code XMLParser â†’ xml_parser})</li>
      * </ul>
      */
     private static String splitCamel(String input, char separator) {
@@ -409,7 +409,7 @@ public final class AvroSchemaBuilder {
 
     private static String toLowerCamelCase(String input) {
         if (input == null || input.isEmpty()) return input;
-        // ALL_CAPS style → all_caps normalized to lower, then camelized.
+        // ALL_CAPS style â†’ all_caps normalized to lower, then camelized.
         if (input.indexOf('_') >= 0 || input.indexOf('-') >= 0) {
             StringBuilder out = new StringBuilder(input.length());
             boolean upperNext = false;
@@ -428,7 +428,7 @@ public final class AvroSchemaBuilder {
             }
             return out.toString();
         }
-        // Pure uppercase identifier (e.g. "EMAIL") → fully lowercase.
+        // Pure uppercase identifier (e.g. "EMAIL") â†’ fully lowercase.
         if (isAllUpper(input)) {
             return input.toLowerCase();
         }
@@ -447,3 +447,4 @@ public final class AvroSchemaBuilder {
         return true;
     }
 }
+

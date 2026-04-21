@@ -1,4 +1,4 @@
-package org.ajtech.schema.json;
+package io.github.jabhijeet.schema.json;
 
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
@@ -438,7 +438,7 @@ class JsonToAvroConverterTest {
             Schema s = record("Dec",
                     field("price",
                             "{\"type\":\"bytes\",\"logicalType\":\"decimal\",\"precision\":5,\"scale\":2}"));
-            // 99999.99 has 7 significant digits — exceeds precision 5
+            // 99999.99 has 7 significant digits â€” exceeds precision 5
             assertThatThrownBy(() -> converter.convert("{\"price\":\"99999.99\"}", s))
                     .isInstanceOf(JsonConversionException.class)
                     .hasMessageContaining("precision");
@@ -532,3 +532,4 @@ class JsonToAvroConverterTest {
         }
     }
 }
+

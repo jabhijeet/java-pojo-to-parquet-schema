@@ -1,4 +1,4 @@
-package org.ajtech.schema.fixtures;
+package io.github.jabhijeet.schema.fixtures;
 
 import java.util.List;
 
@@ -7,3 +7,4 @@ public class MidPojo {
     public LeafPojo leaf;
     public List<LeafPojo> leaves;
 }
+
