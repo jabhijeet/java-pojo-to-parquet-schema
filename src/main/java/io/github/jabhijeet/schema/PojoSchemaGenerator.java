@@ -201,6 +201,32 @@ public final class PojoSchemaGenerator {
             return this;
         }
 
+        /**
+         * Enables flattening of nested POJO records into a single top-level record
+         * whose leaf names are joined by {@link #flattenSeparator(String)} (default {@code "_"}).
+         * Flattening stops at collection/map boundaries.
+         */
+        public Builder flattenNestedRecords(boolean flatten) {
+            inner.flattenNestedRecords(flatten);
+            return this;
+        }
+
+        /**
+         * Separator used for flattened field names. Must match {@code ^[A-Za-z0-9_]+$}.
+         */
+        public Builder flattenSeparator(String separator) {
+            inner.flattenSeparator(separator);
+            return this;
+        }
+
+        /**
+         * Selects how duplicate flattened field names are resolved.
+         */
+        public Builder flattenCollisionStrategy(FlattenCollisionStrategy strategy) {
+            inner.flattenCollisionStrategy(strategy);
+            return this;
+        }
+
         public PojoSchemaGenerator build() {
             return new PojoSchemaGenerator(inner.build());
         }

@@ -3,7 +3,9 @@ package io.github.jabhijeet.schema.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.github.jabhijeet.schema.SchemaProps;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
@@ -35,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Converts a JSON document (supplied as a {@link JsonNode}, raw string, stream,
@@ -601,11 +604,27 @@ public final class JsonToAvroConverter {
             throw new JsonConversionException(path,
                     "Expected object (for record " + schema.getFullName() + ") but was " + describeNode(node));
         }
+        boolean flat = Boolean.TRUE.equals(schema.getObjectProp(SchemaProps.FLATTENED));
+        String separator = null;
+        if (flat) {
+            Object sep = schema.getObjectProp(SchemaProps.FLATTEN_SEPARATOR);
+            separator = (sep instanceof String s && !s.isEmpty()) ? s : "_";
+        }
         GenericData.Record record = new GenericData.Record(schema);
         for (Schema.Field field : schema.getFields()) {
             String fieldPath = path + "." + field.name();
-            JsonNode valueNode = node.get(field.name());
-            if (valueNode == null) {
+            JsonNode valueNode;
+            if (flat) {
+                String[] pathSegments = sourcePathSegments(field, separator);
+                valueNode = walkFlat(node, pathSegments);
+                if (valueNode == null || valueNode.isMissingNode()) {
+                    // Fall back to a literal flat key if the nested walk didn't land.
+                    valueNode = node.get(field.name());
+                }
+            } else {
+                valueNode = node.get(field.name());
+            }
+            if (valueNode == null || valueNode.isMissingNode()) {
                 // Missing field: prefer a schema default, otherwise permit null if nullable.
                 if (field.hasDefaultValue()) {
                     record.put(field.name(), defaultValue(field));
@@ -621,6 +640,30 @@ public final class JsonToAvroConverter {
             record.put(field.name(), convertNode(valueNode, field.schema(), fieldPath));
         }
         return record;
+    }
+
+    private static String[] sourcePathSegments(Schema.Field field, String separator) {
+        Object sourcePath = field.getObjectProp(SchemaProps.FLATTEN_SOURCE_PATH);
+        if (sourcePath instanceof String s && !s.isEmpty()) {
+            // Source path uses '.' because Avro field names cannot contain '.'.
+            return s.split("\\.", -1);
+        }
+        return field.name().split(Pattern.quote(separator), -1);
+    }
+
+    private static JsonNode walkFlat(JsonNode root, String[] parts) {
+        JsonNode cur = root;
+        for (String p : parts) {
+            if (cur == null || cur.isNull() || !cur.isObject()) {
+                return MissingNode.getInstance();
+            }
+            JsonNode next = cur.get(p);
+            if (next == null) {
+                return MissingNode.getInstance();
+            }
+            cur = next;
+        }
+        return cur;
     }
 
     private Object defaultValue(Schema.Field field) {

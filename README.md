@@ -28,18 +28,18 @@ Most data-pipeline tools (Avro, Parquet, Spark, Flink, Kafka Connect) need schem
 <dependency>
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL):**
 ```kotlin
-implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:2.0.0")
+implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:2.1.0")
 ```
 
 **Gradle (Groovy DSL):**
 ```groovy
-implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:2.0.0'
+implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:2.1.0'
 ```
 
 Transitive dependencies pulled in:
@@ -88,6 +88,9 @@ PojoSchemaGenerator gen = PojoSchemaGenerator.builder()
         .timestampPrecision(TimestampPrecision.MICROS)
         .timezoneHandling(TimezoneHandling.UTC)
         .preserveDefaultValues(true)                    // carry Java initializers into the schema
+        .flattenNestedRecords(true)                     // flatten nested records into path-joined leaf fields
+        .flattenSeparator("_")                          // separator used to join path segments (default "_")
+        .flattenCollisionStrategy(FlattenCollisionStrategy.THROW) // or AUTO_RENAME for __1, __2, ...
         .cacheStrategy(CacheStrategy.LRU)               // optional; caches generated schemas
         .cacheSize(200)
         .build();
@@ -137,6 +140,66 @@ union is ordered `[T, null]` (non-null branch first) so the default validates; f
 nullable fields without an initializer the union stays `[null, T]` with `null` as
 the default. `Float` fields are emitted as `Float` rather than `Double` in the
 default value so they agree with the schema's `FLOAT` type.
+
+#### Flattening nested records (opt-in)
+
+Some analytical tools prefer shallow/columnar schemas. Set `flattenNestedRecords(true)`
+to collapse nested POJO records into path-joined leaf fields on the **top-level**
+record.
+
+```java
+class Inner { public String c; public int n; }
+class Outer { public Inner inner; public String top; }
+
+PojoSchemaGenerator flat = PojoSchemaGenerator.builder()
+        .flattenNestedRecords(true)
+        .build();
+
+Schema schema = flat.generateAvro(Outer.class);
+// Fields: inner_c, inner_n, top   (instead of nested record `inner`)
+```
+
+Key rules:
+
+- **Separator** — `flattenSeparator(String)` is configurable and defaults to `"_"`.
+  Only `[A-Za-z0-9_]+` is accepted (Avro field names cannot contain `.` or `-`).
+- **Stops at collections/maps** — `List<Inner>` stays as `array<Inner>` and
+  `Map<String,Inner>` stays as `map<Inner>`; elements inside remain nested records.
+- **Nullability composes with OR** — the flat leaf is nullable if *any* ancestor on
+  the path or the leaf itself is nullable.
+- **Annotations apply per segment** — `@SchemaField(name = ...)` on an intermediate
+  or leaf, and the configured `FieldNamingStrategy`, are applied to each segment
+  before the path is joined.
+- **Cycles throw `SchemaGenerationException`** up front with the dotted source path.
+  Self-reference *through a collection* (e.g. `Node { List<Node> children; }`) is
+  allowed because flattening stops at the list.
+- **Collisions** — if two source paths collapse to the same name, the default
+  `flattenCollisionStrategy(THROW)` rejects the schema with an error naming both
+  paths. Switch to `AUTO_RENAME` to suffix duplicates as `name__1`, `name__2`, ….
+- **Self-describing** — the generated top-level record carries custom properties
+  `pojoSchemaFlattened=true` and `pojoSchemaFlattenSeparator=<sep>`, and each flat
+  leaf carries `pojoSchemaFlattenSourcePath=<dotted.original.path>`. `JsonToAvroConverter`
+  uses these to walk nested JSON automatically — no new API on the caller side.
+- **Default off; fully back-compatible** — with the flag unset every existing call
+  returns the same nested schema as before.
+
+##### Reading JSON into a flat schema
+
+With a flat schema, `JsonIO` / `JsonToAvroConverter` accept **both** nested JSON
+and literal flat keys for the same field. Nested walk is tried first; on miss, the
+literal flat key is used as a fallback:
+
+```java
+Schema schema = flat.generateAvro(Outer.class);
+
+// Nested input round-trips into a flat record:
+byte[] parquetBytes = JsonIO.toParquetBytes(
+        "{\"inner\":{\"c\":\"hello\",\"n\":7},\"top\":\"x\"}", schema);
+
+// Literal flat keys also work:
+byte[] avroBytes = JsonIO.toAvroBytes(
+        "{\"inner_c\":\"hello\",\"inner_n\":7,\"top\":\"x\"}", schema);
+```
 
 ### Annotations
 

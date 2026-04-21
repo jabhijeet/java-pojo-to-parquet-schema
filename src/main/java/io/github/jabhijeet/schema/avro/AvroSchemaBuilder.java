@@ -1,8 +1,10 @@
 package io.github.jabhijeet.schema.avro;
 
 import io.github.jabhijeet.schema.FieldNamingStrategy;
+import io.github.jabhijeet.schema.FlattenCollisionStrategy;
 import io.github.jabhijeet.schema.SchemaGenerationException;
 import io.github.jabhijeet.schema.SchemaOptions;
+import io.github.jabhijeet.schema.SchemaProps;
 import io.github.jabhijeet.schema.TimestampPrecision;
 import io.github.jabhijeet.schema.annotation.SchemaDecimal;
 import io.github.jabhijeet.schema.annotation.SchemaField;
@@ -25,14 +27,20 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -61,7 +69,11 @@ public final class AvroSchemaBuilder {
             throw new SchemaGenerationException(
                     "Top-level schema generation requires a POJO class, got: " + pojoClass.getName());
         }
-        return buildRecord(pojoClass);
+        Schema nested = buildRecord(pojoClass);
+        if (options.flattenNestedRecords()) {
+            return flattenTopLevel(nested);
+        }
+        return nested;
     }
 
     private Schema buildRecord(Class<?> type) {
@@ -242,6 +254,129 @@ public final class AvroSchemaBuilder {
                 ? options.namespaceOverride()
                 : enumType.getPackage() != null ? enumType.getPackage().getName() : null;
         return Schema.createEnum(enumType.getSimpleName(), null, namespace, symbols);
+    }
+
+    private Schema flattenTopLevel(Schema nested) {
+        String sep = options.flattenSeparator();
+        Map<String, String> pathByName = new LinkedHashMap<>();
+        Map<String, Integer> renameCounters = new HashMap<>();
+        Deque<String> sourceStack = new ArrayDeque<>();
+        List<Schema.Field> flatFields = flattenFields(
+                nested, "", false, new HashSet<>(), pathByName, renameCounters, sourceStack, sep);
+
+        Schema flat = Schema.createRecord(
+                nested.getName(), nested.getDoc(), nested.getNamespace(), /*error*/ false);
+        flat.setFields(flatFields);
+        flat.addProp(SchemaProps.FLATTENED, true);
+        flat.addProp(SchemaProps.FLATTEN_SEPARATOR, sep);
+        return flat;
+    }
+
+    private List<Schema.Field> flattenFields(Schema record,
+                                             String prefix,
+                                             boolean pathNullable,
+                                             Set<String> visited,
+                                             Map<String, String> pathByName,
+                                             Map<String, Integer> renameCounters,
+                                             Deque<String> sourceStack,
+                                             String separator) {
+        String fullName = record.getFullName();
+        if (!visited.add(fullName)) {
+            throw new SchemaGenerationException(
+                    "Cannot flatten cyclic record path at " + joinedSourcePath(sourceStack)
+                            + "; revisits " + fullName
+                            + ". Disable flattenNestedRecords or break the cycle with @SchemaIgnore.");
+        }
+        try {
+            List<Schema.Field> out = new ArrayList<>();
+            for (Schema.Field f : record.getFields()) {
+                boolean fieldNullable = schemaAcceptsNull(f.schema());
+                Schema core = unwrapNullableForFlatten(f.schema());
+                String segment = f.name();
+                String childName = prefix.isEmpty() ? segment : prefix + separator + segment;
+
+                sourceStack.addLast(f.name());
+                try {
+                    if (core.getType() == Schema.Type.RECORD) {
+                        out.addAll(flattenFields(core, childName,
+                                pathNullable || fieldNullable,
+                                visited, pathByName, renameCounters, sourceStack, separator));
+                    } else {
+                        String sourcePath = joinedSourcePath(sourceStack);
+                        String finalName = resolveCollision(childName, sourcePath,
+                                pathByName, renameCounters);
+                        Schema leafSchema = core;
+                        boolean effectiveNullable = pathNullable || fieldNullable;
+                        if (effectiveNullable) {
+                            leafSchema = makeNullable(leafSchema, /*nullFirst*/ true);
+                        }
+                        Object defaultVal = pathNullable ? JsonProperties.NULL_VALUE : f.defaultVal();
+                        Schema.Field leafField = new Schema.Field(finalName, leafSchema, f.doc(), defaultVal);
+                        leafField.addProp(SchemaProps.FLATTEN_SOURCE_PATH, sourcePath);
+                        out.add(leafField);
+                    }
+                } finally {
+                    sourceStack.removeLast();
+                }
+            }
+            return out;
+        } finally {
+            visited.remove(fullName);
+        }
+    }
+
+    private String resolveCollision(String proposed,
+                                    String sourcePath,
+                                    Map<String, String> pathByName,
+                                    Map<String, Integer> renameCounters) {
+        String existing = pathByName.putIfAbsent(proposed, sourcePath);
+        if (existing == null) return proposed;
+        if (options.flattenCollisionStrategy() == FlattenCollisionStrategy.THROW) {
+            throw new SchemaGenerationException(
+                    "Flatten produced duplicate field '" + proposed
+                            + "' from paths '" + existing + "' and '" + sourcePath
+                            + "'. Rename with @SchemaField(name=...), change flattenSeparator(...), "
+                            + "or set flattenCollisionStrategy(AUTO_RENAME) to suffix duplicates.");
+        }
+        // AUTO_RENAME: find the next unused suffix.
+        int n = renameCounters.getOrDefault(proposed, 0);
+        String renamed;
+        do {
+            n++;
+            renamed = proposed + "__" + n;
+        } while (pathByName.containsKey(renamed));
+        renameCounters.put(proposed, n);
+        pathByName.put(renamed, sourcePath);
+        return renamed;
+    }
+
+    private static boolean schemaAcceptsNull(Schema schema) {
+        if (schema.getType() == Schema.Type.NULL) return true;
+        if (schema.getType() != Schema.Type.UNION) return false;
+        for (Schema b : schema.getTypes()) {
+            if (b.getType() == Schema.Type.NULL) return true;
+        }
+        return false;
+    }
+
+    private static Schema unwrapNullableForFlatten(Schema schema) {
+        if (schema.getType() != Schema.Type.UNION) return schema;
+        List<Schema> types = schema.getTypes();
+        if (types.size() != 2) return schema;
+        if (types.get(0).getType() == Schema.Type.NULL) return types.get(1);
+        if (types.get(1).getType() == Schema.Type.NULL) return types.get(0);
+        return schema;
+    }
+
+    private static String joinedSourcePath(Deque<String> stack) {
+        if (stack.isEmpty()) return "<root>";
+        StringBuilder sb = new StringBuilder();
+        Iterator<String> it = stack.iterator();
+        while (it.hasNext()) {
+            if (sb.length() > 0) sb.append('.');
+            sb.append(it.next());
+        }
+        return sb.toString();
     }
 
     private static Schema makeNullable(Schema schema) {
