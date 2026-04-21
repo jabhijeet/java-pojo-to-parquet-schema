@@ -1,0 +1,7 @@
+package org.ajtech.schema.fixtures;
+
+public class Address {
+    public String street;
+    public String city;
+    public int postalCode;
+}
