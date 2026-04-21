@@ -18,7 +18,7 @@ Most data-pipeline tools (Avro, Parquet, Spark, Flink, Kafka Connect) need schem
 
 ## Requirements
 
-- Java **+**
+- Java **21+**
 - Maven or Gradle
 
 ## Installation
@@ -28,18 +28,18 @@ Most data-pipeline tools (Avro, Parquet, Spark, Flink, Kafka Connect) need schem
 <dependency>
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL):**
 ```kotlin
-implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:1.0.0")
+implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:2.0.0")
 ```
 
 **Gradle (Groovy DSL):**
 ```groovy
-implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:1.0.0'
+implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:2.0.0'
 ```
 
 Transitive dependencies pulled in:
