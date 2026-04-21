@@ -1,5 +1,7 @@
 ﻿# java-pojo-to-parquet-schema
 
+![Maven Central](https://img.shields.io/maven-central/v/io.github.jabhijeet/java-pojo-to-parquet-schema?style=for-the-badge)
+
 A zero-boilerplate Java  library with two capabilities:
 
 1. **POJO → Schema**: Convert plain Java classes into **Apache Avro** `Schema` and **Apache Parquet** `MessageType` objects through reflection. No code generation, no external schema files.
@@ -333,7 +335,6 @@ try {
     System.err.println("Detail: " + e.getMessage());
 }
 ```
-[![Maven Central](https://shields.ioio.github.jabhijeet/java-pojo-to-parquet-schema.svg)](https://sonatype.comio.github.jabhijeet/java-pojo-to-parquet-schema)
 
 
 ## License
