@@ -1,6 +1,6 @@
 # java-pojo-to-parquet-schema
 
-A zero-boilerplate Java 17 library with two capabilities:
+A zero-boilerplate Java  library with two capabilities:
 
 1. **POJO → Schema**: Convert plain Java classes into **Apache Avro** `Schema` and **Apache Parquet** `MessageType` objects through reflection. No code generation, no external schema files.
 
@@ -16,7 +16,7 @@ Most data-pipeline tools (Avro, Parquet, Spark, Flink, Kafka Connect) need schem
 
 ## Requirements
 
-- Java **17+**
+- Java **+**
 - Maven or Gradle
 
 ## Installation
@@ -46,7 +46,7 @@ Transitive dependencies pulled in:
 | --------------------------------------------- | ------- |
 | `org.apache.avro:avro`                        | 1.11.4  |
 | `org.apache.parquet:parquet-avro`             | 1.15.0  |
-| `com.fasterxml.jackson.core:jackson-databind` | 2.17.2  |
+| `com.fasterxml.jackson.core:jackson-databind` | 2..2  |
 | `org.slf4j:slf4j-api`                         | 2.0.13  |
 
 `hadoop-common` and `hadoop-mapreduce-client-core` are declared as `optional` — they are needed at runtime only when you use the Parquet I/O helpers. For schema-generation-only use cases they are not required.
@@ -334,19 +334,6 @@ try {
 }
 ```
 
----
-
-## Building from source
-
-The Maven project is nested one level deep; run commands from `java-pojo-to-parquet-schema/java-pojo-to-parquet-schema/`:
-
-```bash
-mvn test                                            # run all tests
-mvn -Dtest=JsonToAvroConverterTest test             # run a specific test class
-mvn package                                         # build main + sources + javadoc jars
-mvn install                                         # publish to local ~/.m2
-mvn package -Prelease                               # build + sign for Maven Central
-```
 
 ## License
 
