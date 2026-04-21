@@ -1,0 +1,142 @@
+{
+  "type" : "record",
+  "name" : "CustomerOrderDemo",
+  "namespace" : "io.github.jabhijeet.schema.fixtures",
+  "fields" : [ {
+    "name" : "orderId",
+    "type" : [ "null", {
+      "type" : "string",
+      "logicalType" : "uuid",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null
+  }, {
+    "name" : "customerName",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null
+  }, {
+    "name" : "customerEmail",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null
+  }, {
+    "name" : "totalAmount",
+    "type" : [ "null", {
+      "type" : "bytes",
+      "logicalType" : "decimal",
+      "precision" : 12,
+      "scale" : 2
+    } ],
+    "default" : null
+  }, {
+    "name" : "placedAt",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "timestamp-millis"
+    } ],
+    "default" : null
+  }, {
+    "name" : "expectedDelivery",
+    "type" : [ "null", {
+      "type" : "int",
+      "logicalType" : "date"
+    } ],
+    "default" : null
+  }, {
+    "name" : "shippingAddress",
+    "type" : [ "null", {
+      "type" : "record",
+      "name" : "Address",
+      "fields" : [ {
+        "name" : "street",
+        "type" : [ "null", {
+          "type" : "string",
+          "avro.java.string" : "String"
+        } ],
+        "default" : null
+      }, {
+        "name" : "city",
+        "type" : [ "null", {
+          "type" : "string",
+          "avro.java.string" : "String"
+        } ],
+        "default" : null
+      }, {
+        "name" : "postalCode",
+        "type" : "int"
+      } ]
+    } ],
+    "default" : null
+  }, {
+    "name" : "billingAddress",
+    "type" : [ "null", "Address" ],
+    "default" : null
+  }, {
+    "name" : "items",
+    "type" : [ "null", {
+      "type" : "array",
+      "items" : {
+        "type" : "record",
+        "name" : "OrderItemDemo",
+        "fields" : [ {
+          "name" : "sku",
+          "type" : [ "null", {
+            "type" : "string",
+            "avro.java.string" : "String"
+          } ],
+          "default" : null
+        }, {
+          "name" : "productName",
+          "type" : [ "null", {
+            "type" : "string",
+            "avro.java.string" : "String"
+          } ],
+          "default" : null
+        }, {
+          "name" : "quantity",
+          "type" : "int"
+        }, {
+          "name" : "unitPrice",
+          "type" : [ "null", {
+            "type" : "bytes",
+            "logicalType" : "decimal",
+            "precision" : 10,
+            "scale" : 2
+          } ],
+          "default" : null
+        } ]
+      }
+    } ],
+    "default" : null
+  }, {
+    "name" : "tags",
+    "type" : [ "null", {
+      "type" : "map",
+      "values" : {
+        "type" : "string",
+        "avro.java.string" : "String"
+      },
+      "avro.java.string" : "String"
+    } ],
+    "default" : null
+  }, {
+    "name" : "metadata",
+    "type" : [ "null", {
+      "type" : "map",
+      "values" : {
+        "type" : "array",
+        "items" : {
+          "type" : "string",
+          "avro.java.string" : "String"
+        }
+      },
+      "avro.java.string" : "String"
+    } ],
+    "default" : null
+  } ]
+}
