@@ -1,0 +1,1 @@
+# java-pojo-to-parquet-schema
