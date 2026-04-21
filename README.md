@@ -26,18 +26,18 @@ Most data-pipeline tools (Avro, Parquet, Spark, Flink, Kafka Connect) need schem
 <dependency>
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL):**
 ```kotlin
-implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:1.1.0-SNAPSHOT")
+implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:1.0.0")
 ```
 
 **Gradle (Groovy DSL):**
 ```groovy
-implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:1.1.0-SNAPSHOT'
+implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:1.0.0'
 ```
 
 Transitive dependencies pulled in:
@@ -333,6 +333,7 @@ try {
     System.err.println("Detail: " + e.getMessage());
 }
 ```
+[![Maven Central](https://shields.ioio.github.jabhijeet/java-pojo-to-parquet-schema.svg)](https://sonatype.comio.github.jabhijeet/java-pojo-to-parquet-schema)
 
 
 ## License
