@@ -127,6 +127,27 @@ public final class JsonIO {
     }
 
     /**
+     * Parses {@code json} into a {@link GenericRecord} that conforms to {@code schema},
+     * rejecting input longer than {@code maxJsonLength} characters.
+     *
+     * <p>This method provides a memory‑safety guard against accidentally
+     * processing extremely large JSON strings that could exhaust heap memory.
+     * The length check is performed before any parsing or tree construction.
+     *
+     * @param json JSON string to parse
+     * @param schema Avro record schema
+     * @param maxJsonLength maximum allowed length of the JSON string (in characters)
+     * @return converted record
+     * @throws JsonConversionException if the JSON exceeds {@code maxJsonLength}
+     * @since 1.0.0
+     */
+    public static GenericRecord toRecord(String json, Schema schema, int maxJsonLength) {
+        Objects.requireNonNull(json, "json");
+        Objects.requireNonNull(schema, "schema");
+        return CONVERTER.convert(json, schema, maxJsonLength);
+    }
+
+    /**
      * Reads a JSON document from {@code in} and converts it to a {@link GenericRecord}.
      * Closes the stream before returning.
      *
@@ -149,6 +170,27 @@ public final class JsonIO {
         return CONVERTER.convertAll(json, schema);
     }
 
+    /**
+     * Converts a JSON array (or single object) to a list of {@link GenericRecord}s,
+     * rejecting input longer than {@code maxJsonLength} characters.
+     *
+     * <p>This method provides a memory‑safety guard against accidentally
+     * processing extremely large JSON strings that could exhaust heap memory.
+     * The length check is performed before any parsing or tree construction.
+     *
+     * @param json JSON string to parse
+     * @param schema Avro record schema
+     * @param maxJsonLength maximum allowed length of the JSON string (in characters)
+     * @return list of converted records
+     * @throws JsonConversionException if the JSON exceeds {@code maxJsonLength}
+     * @since 1.0.0
+     */
+    public static List<GenericRecord> toRecords(String json, Schema schema, int maxJsonLength) {
+        Objects.requireNonNull(json, "json");
+        Objects.requireNonNull(schema, "schema");
+        return CONVERTER.convertAll(json, schema, maxJsonLength);
+    }
+
     // ---------------------------------------------------------------- JSON â†’ Avro bytes
 
     /**
@@ -156,6 +198,25 @@ public final class JsonIO {
      */
     public static byte[] toAvroBytes(String json, Schema schema) {
         return AvroIO.toBytes(schema, toRecord(json, schema));
+    }
+
+    /**
+     * Converts a single JSON document to an Avro Object Container File and returns the bytes,
+     * rejecting input longer than {@code maxJsonLength} characters.
+     *
+     * <p>This method provides a memory‑safety guard against accidentally
+     * processing extremely large JSON strings that could exhaust heap memory.
+     * The length check is performed before any parsing or tree construction.
+     *
+     * @param json JSON string to parse
+     * @param schema Avro record schema
+     * @param maxJsonLength maximum allowed length of the JSON string (in characters)
+     * @return Avro bytes
+     * @throws JsonConversionException if the JSON exceeds {@code maxJsonLength}
+     * @since 1.0.0
+     */
+    public static byte[] toAvroBytes(String json, Schema schema, int maxJsonLength) {
+        return AvroIO.toBytes(schema, toRecord(json, schema, maxJsonLength));
     }
 
     /**
@@ -174,6 +235,26 @@ public final class JsonIO {
         return AvroIO.toBytes(schema, toRecords(json, schema));
     }
 
+    /**
+     * Converts a JSON array (or single object) to an Avro Object Container File
+     * containing all matching records, and returns the bytes,
+     * rejecting input longer than {@code maxJsonLength} characters.
+     *
+     * <p>This method provides a memory‑safety guard against accidentally
+     * processing extremely large JSON strings that could exhaust heap memory.
+     * The length check is performed before any parsing or tree construction.
+     *
+     * @param json JSON string to parse
+     * @param schema Avro record schema
+     * @param maxJsonLength maximum allowed length of the JSON string (in characters)
+     * @return Avro bytes
+     * @throws JsonConversionException if the JSON exceeds {@code maxJsonLength}
+     * @since 1.0.0
+     */
+    public static byte[] toAvroBytesAll(String json, Schema schema, int maxJsonLength) {
+        return AvroIO.toBytes(schema, toRecords(json, schema, maxJsonLength));
+    }
+
     // ---------------------------------------------------------------- JSON â†’ Parquet bytes
 
     /**
@@ -181,6 +262,25 @@ public final class JsonIO {
      */
     public static byte[] toParquetBytes(String json, Schema schema) {
         return ParquetIO.toBytes(schema, toRecord(json, schema));
+    }
+
+    /**
+     * Converts a single JSON document to Parquet bytes using the default codec (Snappy),
+     * rejecting input longer than {@code maxJsonLength} characters.
+     *
+     * <p>This method provides a memory‑safety guard against accidentally
+     * processing extremely large JSON strings that could exhaust heap memory.
+     * The length check is performed before any parsing or tree construction.
+     *
+     * @param json JSON string to parse
+     * @param schema Avro record schema
+     * @param maxJsonLength maximum allowed length of the JSON string (in characters)
+     * @return Parquet bytes
+     * @throws JsonConversionException if the JSON exceeds {@code maxJsonLength}
+     * @since 1.0.0
+     */
+    public static byte[] toParquetBytes(String json, Schema schema, int maxJsonLength) {
+        return ParquetIO.toBytes(schema, toRecord(json, schema, maxJsonLength));
     }
 
     /**
@@ -197,6 +297,26 @@ public final class JsonIO {
      */
     public static byte[] toParquetBytesAll(String json, Schema schema) {
         return ParquetIO.toBytes(schema, toRecords(json, schema));
+    }
+
+    /**
+     * Converts a JSON array (or single object) to a Parquet file containing all
+     * matching records, and returns the bytes,
+     * rejecting input longer than {@code maxJsonLength} characters.
+     *
+     * <p>This method provides a memory‑safety guard against accidentally
+     * processing extremely large JSON strings that could exhaust heap memory.
+     * The length check is performed before any parsing or tree construction.
+     *
+     * @param json JSON string to parse
+     * @param schema Avro record schema
+     * @param maxJsonLength maximum allowed length of the JSON string (in characters)
+     * @return Parquet bytes
+     * @throws JsonConversionException if the JSON exceeds {@code maxJsonLength}
+     * @since 1.0.0
+     */
+    public static byte[] toParquetBytesAll(String json, Schema schema, int maxJsonLength) {
+        return ParquetIO.toBytes(schema, toRecords(json, schema, maxJsonLength));
     }
 
     // ---------------------------------------------------------------- record → JSON

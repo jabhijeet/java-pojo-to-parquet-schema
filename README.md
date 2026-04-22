@@ -46,8 +46,8 @@ Transitive dependencies pulled in:
 
 | Dependency                                    | Version |
 | --------------------------------------------- | ------- |
-| `org.apache.avro:avro`                        | 1.11.4  |
-| `org.apache.parquet:parquet-avro`             | 1.15.0  |
+| `org.apache.avro:avro`                        | 1.12.1  |
+| `org.apache.parquet:parquet-avro`             | 1.16.0  |
 | `com.fasterxml.jackson.core:jackson-databind` | 2..2  |
 | `org.slf4j:slf4j-api`                         | 2.0.13  |
 
@@ -399,6 +399,57 @@ try {
 }
 ```
 
+
+## Security
+
+This library uses the following security-hardened dependency versions:
+
+- **Apache Avro 1.12.1** – addresses CVE-2025-33042 (fixed in 1.11.5+)
+- **Apache Parquet 1.16.0** – addresses CVE-2025-30065 and CVE-2025-46762 (fixed in 1.15.2+)
+
+For production deployments, we recommend:
+
+- Regularly scanning dependencies with tools like **OWASP Dependency Check**, **Snyk**, **Dependabot**, or **GitHub dependency review**.
+- Running `mvn dependency:tree` to verify transitive dependencies.
+- Staying up‑to‑date with the latest security advisories for Avro, Parquet, Hadoop, and Jackson.
+
+If you discover a security vulnerability, please report it privately via GitHub Security Advisories.
+
+## Memory bounds and streaming
+
+All JSON conversion methods in `JsonIO` and `JsonToGenericRecordConverter` load the entire JSON document into memory, parse it into a Jackson `JsonNode` tree, then convert it to Avro `GenericRecord` objects. This approach is simple and fast for moderate‑sized documents but has inherent memory limits:
+
+| Component | Memory overhead | Typical limit |
+|-----------|-----------------|---------------|
+| JSON string | 2× original size (Java `String` + internal `char[]`) | ~10–100 MB |
+| Jackson `JsonNode` tree | 3–5× JSON size | ~50–500 MB |
+| Avro `GenericRecord` | 2–4× JSON size | ~50–400 MB |
+| Parquet in‑memory buffer | Additional 1–2× | ~100–800 MB total |
+
+**Recommendations for large inputs:**
+
+1. **Use size‑limited overloads** where available:
+   ```java
+   // Check JSON length before parsing (available in JsonIO 2.2.0+)
+   byte[] avro = JsonIO.toAvroBytes(json, schema, 10 * 1024 * 1024); // 10 MB limit
+   ```
+
+2. **For streaming workloads**, bypass `JsonIO` and use Avro/Parquet directly:
+   ```java
+   // Read JSON incrementally with Jackson's streaming API
+   JsonParser parser = mapper.createParser(jsonInputStream);
+   // Build Avro records field‑by‑field
+   GenericRecordBuilder builder = new GenericRecordBuilder(schema);
+   // Write to Avro/Parquet OutputStream without full in‑memory conversion
+   AvroIO.writeTo(schema, records, outputStream);
+   ```
+
+3. **For batch processing of huge datasets**, consider:
+   - Splitting input into smaller chunks
+   - Using disk‑backed temporary storage
+   - Leveraging Spark, Flink, or similar frameworks with native Avro/Parquet support
+
+**Streaming contract:** The `JsonIO` facade is designed for convenience, not for streaming. If your JSON documents regularly exceed 10 MB, prefer the lower‑level `AvroIO` and `ParquetIO` classes with custom incremental JSON parsing.
 
 ## License
 

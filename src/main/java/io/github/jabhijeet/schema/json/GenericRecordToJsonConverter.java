@@ -12,6 +12,7 @@ import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -141,8 +142,10 @@ public final class GenericRecordToJsonConverter {
     private JsonNode convertValue(Object value, Schema schema) {
         Schema effective = schema;
         if (schema.getType() == Schema.Type.UNION) {
-            if (value == null) return JsonNodeFactory.instance.nullNode();
-            effective = nonNullBranch(schema);
+            effective = findMatchingBranch(value, schema);
+            if (effective.getType() == Schema.Type.NULL) {
+                return JsonNodeFactory.instance.nullNode();
+            }
         }
         if (value == null) return JsonNodeFactory.instance.nullNode();
 
@@ -228,6 +231,58 @@ public final class GenericRecordToJsonConverter {
         byte[] bytes = new byte[buf.remaining()];
         buf.duplicate().get(bytes);
         return JsonNodeFactory.instance.textNode(BASE64.encodeToString(bytes));
+    }
+
+    private static Schema findMatchingBranch(Object value, Schema union) {
+        if (value == null) {
+            // Find null branch
+            for (Schema branch : union.getTypes()) {
+                if (branch.getType() == Schema.Type.NULL) {
+                    return branch;
+                }
+            }
+            throw new JsonConversionException("$", "Union value is null but no null branch in union " + union);
+        }
+
+        // Determine runtime type
+        Class<?> clazz = value.getClass();
+
+        for (Schema branch : union.getTypes()) {
+            if (branch.getType() == Schema.Type.NULL) {
+                continue; // skip null branch for non-null value
+            }
+            boolean matches = false;
+            switch (branch.getType()) {
+                case BOOLEAN -> matches = clazz == Boolean.class;
+                case INT -> matches = clazz == Integer.class;
+                case LONG -> matches = clazz == Long.class;
+                case FLOAT -> matches = clazz == Float.class;
+                case DOUBLE -> matches = clazz == Double.class;
+                case STRING -> matches = clazz == String.class || clazz == Utf8.class;
+                case BYTES -> matches = ByteBuffer.class.isAssignableFrom(clazz);
+                case FIXED -> matches = clazz == GenericData.Fixed.class;
+                case ENUM -> matches = GenericData.EnumSymbol.class.isAssignableFrom(clazz);
+                case ARRAY -> matches = Iterable.class.isAssignableFrom(clazz);
+                case MAP -> matches = Map.class.isAssignableFrom(clazz);
+                case RECORD -> matches = GenericRecord.class.isAssignableFrom(clazz);
+                case UNION -> {
+                    // Nested union: recurse
+                    try {
+                        findMatchingBranch(value, branch);
+                        matches = true;
+                    } catch (JsonConversionException e) {
+                        matches = false;
+                    }
+                }
+                default -> matches = false;
+            }
+            if (matches) {
+                return branch;
+            }
+        }
+
+        throw new JsonConversionException("$", "Value of type " + clazz.getSimpleName() +
+                " does not match any branch of union " + union);
     }
 
     private static Schema nonNullBranch(Schema union) {

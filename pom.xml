@@ -62,8 +62,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <avro.version>1.11.4</avro.version>
-        <parquet.version>1.15.0</parquet.version>
+        <avro.version>1.12.1</avro.version>
+        <parquet.version>1.16.0</parquet.version>
         <jackson.version>2.17.2</jackson.version>
         <hadoop.version>3.3.6</hadoop.version>
         <slf4j.version>2.0.13</slf4j.version>
@@ -98,7 +98,7 @@
         </dependency>
         <!--
             Pin jackson-core and jackson-annotations to the same version family as
-            jackson-databind. avro:1.11.4 pulls in jackson-core:2.14.3 as a direct
+            jackson-databind. avro:1.12.1 pulls in jackson-core:2.14.3 as a direct
             dependency (depth 2), which beats jackson-databind's transitive 2.17.x
             under Maven's nearest-wins rule. Explicitly declaring all three at
             the same version ensures a consistent Jackson classpath.
@@ -124,7 +124,7 @@
             hadoop-mapreduce-client-core (FileInputFormat) during classloading.
             We never invoke Hadoop's FileSystem path — in-memory OutputFile/InputFile
             implementations keep us filesystem-free — but the class references must
-            still resolve. We ship them as runtime-scope dependencies so consumers
+            still resolve. We declare them as optional compile dependencies so consumers
             of schema-generation-only features do not need to think about hadoop,
             while users of the Parquet I/O helpers get a working classpath by
             default.
@@ -197,6 +197,33 @@
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[21,22)</version>
+                                </requireJavaVersion>
+                                <requireMavenVersion>
+                                    <version>[3.9,)</version>
+                                </requireMavenVersion>
+                                <banDuplicateClasses>
+                                    <findAllDuplicates>true</findAllDuplicates>
+                                </banDuplicateClasses>
+                                <dependencyConvergence/>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

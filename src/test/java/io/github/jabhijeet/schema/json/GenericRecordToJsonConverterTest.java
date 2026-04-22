@@ -26,6 +26,7 @@ import java.time.LocalTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GenericRecordToJsonConverterTest {
 
@@ -212,6 +213,66 @@ class GenericRecordToJsonConverterTest {
         assertThat(jsons).hasSize(1);
         assertThat(jsons.get(0)).contains("\"top\":\"parquet\"");
         assertThat(jsons.get(0)).contains("\"n\":99");
+    }
+
+    // ---------------------------------------------------------------- union handling
+
+    @Test
+    void union_int_string_serializes_int_branch() {
+        Schema union = Schema.createUnion(Schema.create(Schema.Type.INT), Schema.create(Schema.Type.STRING));
+        Schema recordSchema = Schema.createRecord("Test", null, "test", false,
+                List.of(new Schema.Field("value", union, null, null)));
+
+        GenericRecord record = new GenericData.Record(recordSchema);
+        record.put("value", 42);
+
+        String json = CONVERTER.convert(record);
+        assertThat(json).contains("\"value\":42");
+    }
+
+    @Test
+    void union_int_string_serializes_string_branch() {
+        Schema union = Schema.createUnion(Schema.create(Schema.Type.INT), Schema.create(Schema.Type.STRING));
+        Schema recordSchema = Schema.createRecord("Test", null, "test", false,
+                List.of(new Schema.Field("value", union, null, null)));
+
+        GenericRecord record = new GenericData.Record(recordSchema);
+        record.put("value", "hello");
+
+        String json = CONVERTER.convert(record);
+        assertThat(json).contains("\"value\":\"hello\"");
+    }
+
+    @Test
+    void union_record_string_serializes_record_branch() {
+        Schema innerRecord = Schema.createRecord("Inner", null, "test", false,
+                List.of(new Schema.Field("field", Schema.create(Schema.Type.STRING), null, null)));
+        Schema union = Schema.createUnion(innerRecord, Schema.create(Schema.Type.STRING));
+        Schema recordSchema = Schema.createRecord("Test", null, "test", false,
+                List.of(new Schema.Field("value", union, null, null)));
+
+        GenericRecord inner = new GenericData.Record(innerRecord);
+        inner.put("field", "testValue");
+        GenericRecord record = new GenericData.Record(recordSchema);
+        record.put("value", inner);
+
+        String json = CONVERTER.convert(record);
+        assertThat(json).contains("\"value\":{\"field\":\"testValue\"}");
+    }
+
+    @Test
+    void union_value_without_matching_branch_throws() {
+        Schema union = Schema.createUnion(Schema.create(Schema.Type.INT), Schema.create(Schema.Type.STRING));
+        Schema recordSchema = Schema.createRecord("Test", null, "test", false,
+                List.of(new Schema.Field("value", union, null, null)));
+
+        GenericRecord record = new GenericData.Record(recordSchema);
+        // Put a Long value which doesn't match any branch (INT expects Integer, not Long)
+        record.put("value", 42L);
+
+        assertThatThrownBy(() -> CONVERTER.convert(record))
+                .isInstanceOf(JsonConversionException.class)
+                .hasMessageContaining("does not match any branch");
     }
 
     // ---------------------------------------------------------------- helpers

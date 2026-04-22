@@ -91,6 +91,31 @@ public final class JsonToGenericRecordConverter {
     }
 
     /**
+     * Converts a JSON string into a {@link GenericRecord}, rejecting input
+     * longer than {@code maxJsonLength} characters.
+     *
+     * <p>This method provides a memory‑safety guard against accidentally
+     * processing extremely large JSON strings that could exhaust heap memory.
+     * The length check is performed before any parsing or tree construction.
+     *
+     * @param json JSON string to parse
+     * @param schema Avro record schema
+     * @param maxJsonLength maximum allowed length of the JSON string (in characters)
+     * @return converted record
+     * @throws JsonConversionException if the JSON exceeds {@code maxJsonLength}
+     * @since 1.0.0
+     */
+    public GenericRecord convert(String json, Schema schema, int maxJsonLength) {
+        Objects.requireNonNull(json, "json");
+        Objects.requireNonNull(schema, "schema");
+        if (json.length() > maxJsonLength) {
+            throw new JsonConversionException("$",
+                    "JSON length " + json.length() + " exceeds maximum allowed " + maxJsonLength);
+        }
+        return convert(parse(json), schema);
+    }
+
+    /**
      * Converts JSON read from a stream into a {@link GenericRecord}.
      * The stream is closed before returning.
      */
@@ -137,6 +162,31 @@ public final class JsonToGenericRecordConverter {
      */
     public List<GenericRecord> convertAll(String json, Schema schema) {
         Objects.requireNonNull(json, "json");
+        return convertAll(parse(json), schema);
+    }
+
+    /**
+     * Converts a JSON array of records into a list of {@link GenericRecord}s,
+     * rejecting input longer than {@code maxJsonLength} characters.
+     *
+     * <p>This method provides a memory‑safety guard against accidentally
+     * processing extremely large JSON strings that could exhaust heap memory.
+     * The length check is performed before any parsing or tree construction.
+     *
+     * @param json JSON string to parse
+     * @param schema Avro record schema
+     * @param maxJsonLength maximum allowed length of the JSON string (in characters)
+     * @return list of converted records
+     * @throws JsonConversionException if the JSON exceeds {@code maxJsonLength}
+     * @since 1.0.0
+     */
+    public List<GenericRecord> convertAll(String json, Schema schema, int maxJsonLength) {
+        Objects.requireNonNull(json, "json");
+        Objects.requireNonNull(schema, "schema");
+        if (json.length() > maxJsonLength) {
+            throw new JsonConversionException("$",
+                    "JSON length " + json.length() + " exceeds maximum allowed " + maxJsonLength);
+        }
         return convertAll(parse(json), schema);
     }
 
@@ -335,18 +385,13 @@ public final class JsonToGenericRecordConverter {
             }
             return (int) v;
         }
-        if (node.isNumber() && node.canConvertToInt()) {
-            return node.intValue();
-        }
+        // Reject fractional numbers (e.g., 1.1, 1.9) and non‑integral numeric strings
         throw new JsonConversionException(path,
-                "Expected int but was " + describeNode(node));
+                "Expected int but was " + describeNode(node) + " (fractional numbers are not allowed)");
     }
 
     private static long asLong(JsonNode node, String path) {
         if (node.isIntegralNumber()) {
-            return node.longValue();
-        }
-        if (node.isNumber() && node.canConvertToLong()) {
             return node.longValue();
         }
         // Accept numeric strings so callers can ship 64-bit ids that exceed
@@ -358,8 +403,9 @@ public final class JsonToGenericRecordConverter {
                 // fall through
             }
         }
+        // Reject fractional numbers (e.g., 1.1, 1.9) and non‑integral numeric strings
         throw new JsonConversionException(path,
-                "Expected long but was " + describeNode(node));
+                "Expected long but was " + describeNode(node) + " (fractional numbers are not allowed)");
     }
 
     private static float asFloat(JsonNode node, String path) {

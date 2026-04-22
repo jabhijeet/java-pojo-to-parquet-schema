@@ -130,6 +130,37 @@ class JsonToGenericRecordConverterTest {
                     .isInstanceOf(JsonConversionException.class)
                     .hasMessageContaining("boolean");
         }
+
+        @Test
+        void int_rejects_fractional_number() {
+            Schema s = record("I", field("v", "\"int\""));
+            assertThatThrownBy(() -> converter.convert("{\"v\":1.1}", s))
+                    .isInstanceOf(JsonConversionException.class)
+                    .hasMessageContaining("fractional");
+        }
+
+        @Test
+        void long_rejects_fractional_number() {
+            Schema s = record("L", field("v", "\"long\""));
+            assertThatThrownBy(() -> converter.convert("{\"v\":2.9}", s))
+                    .isInstanceOf(JsonConversionException.class)
+                    .hasMessageContaining("fractional");
+        }
+
+        @Test
+        void int_rejects_out_of_range_integral_number() {
+            Schema s = record("I", field("v", "\"int\""));
+            assertThatThrownBy(() -> converter.convert("{\"v\":9999999999}", s))
+                    .isInstanceOf(JsonConversionException.class)
+                    .hasMessageContaining("32-bit");
+        }
+
+        @Test
+        void long_accepts_numeric_string() {
+            Schema s = record("L", field("v", "\"long\""));
+            GenericRecord r = converter.convert("{\"v\":\"123456789012345\"}", s);
+            assertThat(r.get("v")).isEqualTo(123456789012345L);
+        }
     }
 
     // ---------------------------------------------------------------- nullable unions
