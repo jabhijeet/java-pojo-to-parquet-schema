@@ -21,27 +21,14 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
  * Converts a JSON document (supplied as a {@link JsonNode}, raw string, stream,
- * or reader) into an Avro {@link GenericRecord} that conforms to a given
+ * or reader) into a {@link GenericRecord} (Avro or Parquet) that conforms to a given
  * {@link Schema}.
  *
  * <p>The converter is schema-driven: it walks the target Avro schema and pulls
@@ -76,7 +63,7 @@ import java.util.regex.Pattern;
  *
  * <p>Instances are stateless and thread-safe once constructed.
  */
-public final class JsonToAvroConverter {
+public final class JsonToGenericRecordConverter {
 
     private static final ObjectMapper DEFAULT_MAPPER = new ObjectMapper();
     private static final Base64.Decoder BASE64 = Base64.getDecoder();
@@ -85,11 +72,11 @@ public final class JsonToAvroConverter {
 
     private final ObjectMapper mapper;
 
-    public JsonToAvroConverter() {
+    public JsonToGenericRecordConverter() {
         this(DEFAULT_MAPPER);
     }
 
-    public JsonToAvroConverter(ObjectMapper mapper) {
+    public JsonToGenericRecordConverter(ObjectMapper mapper) {
         this.mapper = Objects.requireNonNull(mapper, "mapper");
     }
 

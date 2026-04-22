@@ -28,18 +28,18 @@ Most data-pipeline tools (Avro, Parquet, Spark, Flink, Kafka Connect) need schem
 <dependency>
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>2.1.0</version>
+    <version>2.2.0</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL):**
 ```kotlin
-implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:2.1.0")
+implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:2.2.0")
 ```
 
 **Gradle (Groovy DSL):**
 ```groovy
-implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:2.1.0'
+implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:2.2.0'
 ```
 
 Transitive dependencies pulled in:
@@ -178,14 +178,14 @@ Key rules:
   paths. Switch to `AUTO_RENAME` to suffix duplicates as `name__1`, `name__2`, ….
 - **Self-describing** — the generated top-level record carries custom properties
   `pojoSchemaFlattened=true` and `pojoSchemaFlattenSeparator=<sep>`, and each flat
-  leaf carries `pojoSchemaFlattenSourcePath=<dotted.original.path>`. `JsonToAvroConverter`
+  leaf carries `pojoSchemaFlattenSourcePath=<dotted.original.path>`. `JsonToGenericRecordConverter`
   uses these to walk nested JSON automatically — no new API on the caller side.
 - **Default off; fully back-compatible** — with the flag unset every existing call
   returns the same nested schema as before.
 
 ##### Reading JSON into a flat schema
 
-With a flat schema, `JsonIO` / `JsonToAvroConverter` accept **both** nested JSON
+With a flat schema, `JsonIO` / `JsonToGenericRecordConverter` accept **both** nested JSON
 and literal flat keys for the same field. Nested walk is tried first; on miss, the
 literal flat key is used as a fallback:
 

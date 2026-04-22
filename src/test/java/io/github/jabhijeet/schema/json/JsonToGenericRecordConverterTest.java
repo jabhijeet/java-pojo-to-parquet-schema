@@ -20,9 +20,9 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class JsonToAvroConverterTest {
+class JsonToGenericRecordConverterTest {
 
-    private final JsonToAvroConverter converter = new JsonToAvroConverter();
+    private final JsonToGenericRecordConverter converter = new JsonToGenericRecordConverter();
 
     // ---------------------------------------------------------------- schema builders
 

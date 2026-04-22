@@ -2,11 +2,7 @@ package io.github.jabhijeet.schema.json;
 
 import io.github.jabhijeet.schema.FlattenCollisionStrategy;
 import io.github.jabhijeet.schema.PojoSchemaGenerator;
-import io.github.jabhijeet.schema.fixtures.FlattenCollisionPojo;
-import io.github.jabhijeet.schema.fixtures.FlattenInner;
-import io.github.jabhijeet.schema.fixtures.FlattenOuter;
-import io.github.jabhijeet.schema.fixtures.FlattenThreeL1;
-import io.github.jabhijeet.schema.fixtures.FlattenWithListNested;
+import io.github.jabhijeet.schema.fixtures.*;
 import io.github.jabhijeet.schema.io.AvroIO;
 import io.github.jabhijeet.schema.io.ParquetIO;
 import org.apache.avro.Schema;
@@ -18,7 +14,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class JsonToAvroConverterFlattenTest {
+class JsonToGenericRecordConverterFlattenTest {
 
     private static final PojoSchemaGenerator FLAT = PojoSchemaGenerator.builder()
             .flattenNestedRecords(true)

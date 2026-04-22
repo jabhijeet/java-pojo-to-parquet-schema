@@ -1,5 +1,6 @@
 package io.github.jabhijeet.schema;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.jabhijeet.schema.fixtures.CustomerOrderDemo;
 import io.github.jabhijeet.schema.io.AvroIO;
@@ -91,6 +92,21 @@ class ComplexJsonVisualDemoTest {
         printBanner("7. ROUND-TRIP: record read back from Parquet bytes");
         System.out.println(roundTripped);
 
+        // ------------------------------------------------------------ JSON round-trip
+
+        String jsonFromRecord = JsonIO.fromRecord(record);
+        List<String> jsonFromAvro    = JsonIO.fromAvroBytes(readResourceAsBytes(AVRO_RESOURCE));
+        List<String> jsonFromParquet = JsonIO.fromParquetBytes(readResourceAsBytes(PARQUET_RESOURCE));
+
+        printBanner("8. JSON ROUND-TRIP: GenericRecord → JSON (JsonIO.fromRecord)");
+        System.out.println(prettyJson(jsonFromRecord));
+
+        printBanner("9. JSON ROUND-TRIP: golden Avro bytes → JSON (JsonIO.fromAvroBytes)");
+        System.out.println(prettyJson(jsonFromAvro.get(0)));
+
+        printBanner("10. JSON ROUND-TRIP: golden Parquet bytes → JSON (JsonIO.fromParquetBytes)");
+        System.out.println(prettyJson(jsonFromParquet.get(0)));
+
         // Re-emit to target/ for inspection and fixture-promotion workflow.
         Path outDir = Path.of("target", "demo-output");
         Files.createDirectories(outDir);
@@ -98,12 +114,14 @@ class ComplexJsonVisualDemoTest {
         Files.write(outDir.resolve("customer-order.parquet"), parquetBytes);
         Files.writeString(outDir.resolve("customer-order.avsc"), avroSchema.toString(true));
         Files.writeString(outDir.resolve("customer-order.input.json"), prettyJson(inputJson));
+        Files.writeString(outDir.resolve("customer-order.output.json"), prettyJson(jsonFromRecord));
 
-        printBanner("8. FILES WRITTEN (open these in external viewers)");
+        printBanner("11. FILES WRITTEN (open these in external viewers)");
         System.out.println(outDir.resolve("customer-order.avro").toAbsolutePath());
         System.out.println(outDir.resolve("customer-order.parquet").toAbsolutePath());
         System.out.println(outDir.resolve("customer-order.avsc").toAbsolutePath());
         System.out.println(outDir.resolve("customer-order.input.json").toAbsolutePath());
+        System.out.println(outDir.resolve("customer-order.output.json").toAbsolutePath());
 
         // ------------------------------------------------------------ golden-fixture comparisons
 
@@ -131,6 +149,42 @@ class ComplexJsonVisualDemoTest {
         List<GenericRecord> items = (List<GenericRecord>) roundTripped.get("items");
         assertThat(items).hasSize(3);
         assertThat(items.get(0).get("sku").toString()).isEqualTo("BOOK-001");
+
+        // ------------------------------------------------------------ JSON round-trip assertions
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        // All three paths (fromRecord, fromAvroBytes, fromParquetBytes) must produce equivalent JSON.
+        JsonNode fromRecordNode   = mapper.readTree(jsonFromRecord);
+        JsonNode fromAvroNode     = mapper.readTree(jsonFromAvro.get(0));
+        JsonNode fromParquetNode  = mapper.readTree(jsonFromParquet.get(0));
+
+        for (JsonNode node : List.of(fromRecordNode, fromAvroNode, fromParquetNode)) {
+            assertThat(node.path("customerName").asText())
+                    .as("customerName must round-trip correctly")
+                    .isEqualTo("Ada Lovelace");
+            assertThat(node.path("expectedDelivery").asText())
+                    .as("date logical type must become ISO-8601 string")
+                    .isEqualTo("2026-04-28");
+            assertThat(node.path("placedAt").asText())
+                    .as("timestamp-millis must become ISO-8601 instant string")
+                    .isEqualTo("2026-04-21T14:30:00Z");
+            assertThat(node.path("totalAmount").asText())
+                    .as("decimal must round-trip as plain string")
+                    .isEqualTo("1249.97");
+            assertThat(node.path("shippingAddress").path("street").asText())
+                    .as("nested record must be preserved")
+                    .isEqualTo("10 Downing St");
+            assertThat(node.path("items").isArray()).isTrue();
+            assertThat(node.path("items").size()).isEqualTo(3);
+            assertThat(node.path("items").get(0).path("sku").asText()).isEqualTo("BOOK-001");
+            assertThat(node.path("items").get(0).path("unitPrice").asText()).isEqualTo("399.99");
+            assertThat(node.path("tags").path("channel").asText())
+                    .as("map field must be preserved as JSON object")
+                    .isEqualTo("web");
+            assertThat(node.path("metadata").path("promotions").isArray()).isTrue();
+            assertThat(node.path("metadata").path("promotions").get(0).asText()).isEqualTo("SPRING25");
+        }
     }
 
     // ---------------------------------------------------------------- resource loading
