@@ -1,0 +1,44 @@
+{
+  "employeeId" : "EMP-2024-001",
+  "fullName" : "Grace Hopper",
+  "email" : "grace@navy.mil",
+  "salary" : "95000.00",
+  "hireDate" : "1944-02-15",
+  "homeAddress" : {
+    "street" : "456 Compiler Lane",
+    "city" : "New Haven",
+    "state" : "CT",
+    "zip" : "06511",
+    "country" : "USA"
+  },
+  "dept" : {
+    "code" : "ENG-SW",
+    "name" : "Software Engineering",
+    "location" : {
+      "building" : "Building A",
+      "floor" : 3
+    }
+  },
+  "manager" : {
+    "name" : "Alan Turing",
+    "title" : "VP Engineering"
+  },
+  "projects" : [ {
+    "projectCode" : "COBOL-1",
+    "projectName" : "COBOL Language Design",
+    "role" : "Lead"
+  }, {
+    "projectCode" : "FLOW-1",
+    "projectName" : "FLOW-MATIC Compiler",
+    "role" : "Lead"
+  }, {
+    "projectCode" : "NATO-1",
+    "projectName" : "NATO Standards",
+    "role" : "Contributor"
+  } ],
+  "attributes" : {
+    "clearance" : "top-secret",
+    "team" : "compilers",
+    "status" : "active"
+  }
+}
