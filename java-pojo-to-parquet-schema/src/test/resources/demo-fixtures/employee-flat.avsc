@@ -1,0 +1,180 @@
+{
+  "type" : "record",
+  "name" : "FlatDemoEmployee",
+  "namespace" : "io.github.jabhijeet.schema.fixtures",
+  "fields" : [ {
+    "name" : "employeeId",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "employeeId"
+  }, {
+    "name" : "fullName",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "fullName"
+  }, {
+    "name" : "email",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "email"
+  }, {
+    "name" : "salary",
+    "type" : [ "null", {
+      "type" : "bytes",
+      "logicalType" : "decimal",
+      "precision" : 12,
+      "scale" : 2
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "salary"
+  }, {
+    "name" : "hireDate",
+    "type" : [ "null", {
+      "type" : "int",
+      "logicalType" : "date"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "hireDate"
+  }, {
+    "name" : "homeAddress_street",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "homeAddress.street"
+  }, {
+    "name" : "homeAddress_city",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "homeAddress.city"
+  }, {
+    "name" : "homeAddress_state",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "homeAddress.state"
+  }, {
+    "name" : "homeAddress_zip",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "homeAddress.zip"
+  }, {
+    "name" : "homeAddress_country",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "homeAddress.country"
+  }, {
+    "name" : "dept_code",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "dept.code"
+  }, {
+    "name" : "dept_name",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "dept.name"
+  }, {
+    "name" : "dept_location_building",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "dept.location.building"
+  }, {
+    "name" : "dept_location_floor",
+    "type" : [ "null", "int" ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "dept.location.floor"
+  }, {
+    "name" : "manager_name",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "manager.name"
+  }, {
+    "name" : "manager_title",
+    "type" : [ "null", {
+      "type" : "string",
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "manager.title"
+  }, {
+    "name" : "projects",
+    "type" : [ "null", {
+      "type" : "array",
+      "items" : {
+        "type" : "record",
+        "name" : "FlatDemoProject",
+        "fields" : [ {
+          "name" : "projectCode",
+          "type" : [ "null", {
+            "type" : "string",
+            "avro.java.string" : "String"
+          } ],
+          "default" : null
+        }, {
+          "name" : "projectName",
+          "type" : [ "null", {
+            "type" : "string",
+            "avro.java.string" : "String"
+          } ],
+          "default" : null
+        }, {
+          "name" : "role",
+          "type" : [ "null", {
+            "type" : "string",
+            "avro.java.string" : "String"
+          } ],
+          "default" : null
+        } ]
+      }
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "projects"
+  }, {
+    "name" : "attributes",
+    "type" : [ "null", {
+      "type" : "map",
+      "values" : {
+        "type" : "string",
+        "avro.java.string" : "String"
+      },
+      "avro.java.string" : "String"
+    } ],
+    "default" : null,
+    "pojoSchemaFlattenSourcePath" : "attributes"
+  } ],
+  "pojoSchemaFlattened" : true,
+  "pojoSchemaFlattenSeparator" : "_"
+}
