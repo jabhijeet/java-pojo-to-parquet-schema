@@ -21,14 +21,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * In-memory / stream-based Parquet write and read helpers.
+ * In-memory Parquet write and read helpers.
  *
- * <p>All writes go through an {@link InMemoryOutputFile}; all reads through an
- * {@link InMemoryInputFile}. No filesystem, no Hadoop {@code FileSystem}, no
- * {@code HADOOP_HOME} requirement.
- *
- * <p>Reads always use {@link GenericData} so plain {@link GenericRecord} values
- * are returned regardless of whether a matching POJO exists on the classpath.
+ * <p>All I/O goes through {@link InMemoryOutputFile} and {@link InMemoryInputFile}.
+ * No filesystem, no Hadoop {@code FileSystem}, and no {@code HADOOP_HOME} environment
+ * variable required — Hadoop's {@code Configuration} class is used internally by the
+ * Parquet writer but works with default settings and no Hadoop installation.
  *
  * <p>Every method closes the resources it creates. Caller-owned streams are
  * flushed but not closed.
@@ -41,24 +39,15 @@ public final class ParquetIO {
         // utility
     }
 
-    /**
-     * Serializes a single record to Parquet and returns the bytes.
-     */
     public static byte[] toBytes(Schema schema, GenericRecord record) {
         Objects.requireNonNull(record, "record");
         return toBytes(schema, Collections.singletonList(record), DEFAULT_CODEC);
     }
 
-    /**
-     * Serializes records to Parquet and returns the bytes using the default codec.
-     */
     public static byte[] toBytes(Schema schema, Collection<? extends GenericRecord> records) {
         return toBytes(schema, records, DEFAULT_CODEC);
     }
 
-    /**
-     * Serializes records to Parquet bytes with the supplied codec.
-     */
     public static byte[] toBytes(Schema schema,
                                  Collection<? extends GenericRecord> records,
                                  CompressionCodecName codec) {
@@ -84,23 +73,12 @@ public final class ParquetIO {
         return output.toByteArray();
     }
 
-    /**
-     * Writes records as a Parquet file to the supplied stream.
-     * Flushes but does not close {@code out}.
-     */
     public static void writeTo(Schema schema,
                                Collection<? extends GenericRecord> records,
                                OutputStream out) {
         writeTo(schema, records, out, DEFAULT_CODEC);
     }
 
-    /**
-     * Writes records as a Parquet file to the supplied stream with a codec.
-     * Flushes but does not close {@code out}.
-     *
-     * <p>Parquet requires random access for its footer, so bytes are staged in a
-     * buffer first and copied to {@code out} in one go.
-     */
     public static void writeTo(Schema schema,
                                Collection<? extends GenericRecord> records,
                                OutputStream out,
@@ -115,11 +93,6 @@ public final class ParquetIO {
         }
     }
 
-    /**
-     * Reads the first record from Parquet bytes.
-     *
-     * @throws IllegalArgumentException if the bytes contain zero records
-     */
     public static GenericRecord fromBytes(byte[] parquetBytes) {
         List<GenericRecord> all = readAll(parquetBytes);
         if (all.isEmpty()) {
@@ -128,9 +101,6 @@ public final class ParquetIO {
         return all.get(0);
     }
 
-    /**
-     * Reads all records from Parquet bytes.
-     */
     public static List<GenericRecord> readAll(byte[] parquetBytes) {
         Objects.requireNonNull(parquetBytes, "parquetBytes");
         if (parquetBytes.length == 0) {
@@ -151,10 +121,6 @@ public final class ParquetIO {
         return out;
     }
 
-    /**
-     * Reads all records from a Parquet {@link InputStream}.
-     * Closes the input stream before returning.
-     */
     public static List<GenericRecord> readAll(InputStream in) {
         Objects.requireNonNull(in, "in");
         try (InputStream owned = in) {
@@ -164,4 +130,3 @@ public final class ParquetIO {
         }
     }
 }
-

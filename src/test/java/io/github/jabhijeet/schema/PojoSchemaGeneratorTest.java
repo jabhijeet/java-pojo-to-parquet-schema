@@ -9,6 +9,8 @@ import io.github.jabhijeet.schema.fixtures.Person;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
+import org.apache.iceberg.types.Type;
+import org.apache.iceberg.types.Types;
 import org.apache.parquet.schema.MessageType;
 import org.junit.jupiter.api.Test;
 
@@ -101,6 +103,45 @@ class PojoSchemaGeneratorTest {
     }
 
     @Test
+    void all_temporal_types_map_to_correct_avro_logical_types() {
+        Schema s = PojoSchemaGenerator.toAvro(
+                io.github.jabhijeet.schema.fixtures.TemporalTypesPojo.class);
+
+        // LocalDate → date (INT)
+        Schema localDate = unwrapNullable(fieldType(s, "localDate"));
+        assertThat(localDate.getLogicalType()).isEqualTo(LogicalTypes.date());
+
+        // LocalTime → time-micros (LONG)
+        Schema localTime = unwrapNullable(fieldType(s, "localTime"));
+        assertThat(localTime.getLogicalType()).isEqualTo(LogicalTypes.timeMicros());
+
+        // LocalDateTime → local-timestamp-millis (LONG, not UTC-adjusted)
+        Schema localDateTime = unwrapNullable(fieldType(s, "localDateTime"));
+        assertThat(localDateTime.getLogicalType()).isEqualTo(LogicalTypes.localTimestampMillis());
+
+        // Instant → timestamp-millis (LONG, UTC)
+        Schema instant = unwrapNullable(fieldType(s, "instant"));
+        assertThat(instant.getLogicalType()).isEqualTo(LogicalTypes.timestampMillis());
+
+        // OffsetDateTime / ZonedDateTime → timestamp-millis (UTC, default mode)
+        Schema offsetDt = unwrapNullable(fieldType(s, "offsetDateTime"));
+        assertThat(offsetDt.getLogicalType()).isEqualTo(LogicalTypes.timestampMillis());
+
+        Schema zonedDt = unwrapNullable(fieldType(s, "zonedDateTime"));
+        assertThat(zonedDt.getLogicalType()).isEqualTo(LogicalTypes.timestampMillis());
+    }
+
+    @Test
+    void uuid_maps_to_string_with_uuid_logical_type() {
+        Schema s = PojoSchemaGenerator.toAvro(Person.class);
+
+        Schema id = unwrapNullable(fieldType(s, "id"));
+        assertThat(id.getType()).isEqualTo(Schema.Type.STRING);
+        assertThat(id.getLogicalType()).isNotNull();
+        assertThat(id.getLogicalType().getName()).isEqualTo("uuid");
+    }
+
+    @Test
     void enum_becomes_avro_enum() {
         Schema colour = unwrapNullable(fieldType(PojoSchemaGenerator.toAvro(Person.class), "favouriteColor"));
 
@@ -180,11 +221,35 @@ class PojoSchemaGeneratorTest {
                 .contains("id", "name", "age", "email_address", "favouriteColor");
     }
 
+    @Test
+    void iceberg_schema_is_generated_and_matches_field_contracts() {
+        org.apache.iceberg.Schema schema = PojoSchemaGenerator.toIceberg(Person.class);
+
+        assertThat(schema.findField("id")).isNotNull();
+        assertThat(schema.findField("name").isOptional()).isTrue();
+        assertThat(schema.findField("age").isRequired()).isTrue();
+        assertThat(schema.findField("email_address")).isNotNull();
+        assertThat(schema.findField("favouriteColor").type().typeId()).isEqualTo(Type.TypeID.STRING);
+
+        Types.NestedField balance = schema.findField("balance");
+        assertThat(balance.type().typeId()).isEqualTo(Type.TypeID.DECIMAL);
+        Types.DecimalType decimal = (Types.DecimalType) balance.type();
+        assertThat(decimal.precision()).isEqualTo(12);
+        assertThat(decimal.scale()).isEqualTo(2);
+    }
+
 
     @Test
     void enum_is_not_a_valid_top_level_target() {
         assertThatThrownBy(() -> PojoSchemaGenerator.toAvro(Color.class))
                 .isInstanceOf(SchemaGenerationException.class);
+    }
+
+    @Test
+    void iceberg_rejects_cyclic_records() {
+        assertThatThrownBy(() -> PojoSchemaGenerator.toIceberg(Node.class))
+                .isInstanceOf(SchemaGenerationException.class)
+                .hasMessageContaining("Iceberg cannot represent cyclic records");
     }
 
     private static Schema fieldType(Schema record, String name) {

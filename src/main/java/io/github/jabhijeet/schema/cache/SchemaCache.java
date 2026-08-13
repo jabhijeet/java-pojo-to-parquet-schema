@@ -52,6 +52,24 @@ public interface SchemaCache {
     void putParquetSchema(Class<?> pojoClass, SchemaOptions options, MessageType schema);
 
     /**
+     * Retrieves an Iceberg schema from the cache, or returns {@code null} if not present.
+     *
+     * @param pojoClass the POJO class
+     * @param options   the schema generation options
+     * @return the cached Iceberg schema, or {@code null} if not cached
+     */
+    org.apache.iceberg.Schema getIcebergSchema(Class<?> pojoClass, SchemaOptions options);
+
+    /**
+     * Stores an Iceberg schema in the cache.
+     *
+     * @param pojoClass the POJO class
+     * @param options   the schema generation options
+     * @param schema    the Iceberg schema to cache
+     */
+    void putIcebergSchema(Class<?> pojoClass, SchemaOptions options, org.apache.iceberg.Schema schema);
+
+    /**
      * Removes all entries from the cache.
      */
     void clear();

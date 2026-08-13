@@ -25,7 +25,12 @@ public enum FieldNamingStrategy {
     UPPER_SNAKE_CASE,
     
     /**
-     * Convert to kebab-case (e.g., "firstName" â†’ "first-name").
+     * Convert to kebab-case word boundaries, but use underscores as separators
+     * (e.g., {@code "firstName"} → {@code "first_name"}).
+     * Avro field names do not permit hyphens, so this strategy produces the same
+     * output as {@link #SNAKE_CASE}. It exists as a distinct value so that code
+     * which semantically intends kebab-case is distinguishable from explicit
+     * snake_case intent without changing any generated schema output.
      */
     KEBAB_CASE
 }

@@ -56,10 +56,12 @@ public final class LruSchemaCache implements SchemaCache {
     private static final class CacheEntry {
         final Schema avroSchema;
         final MessageType parquetSchema;
+        final org.apache.iceberg.Schema icebergSchema;
 
-        CacheEntry(Schema avroSchema, MessageType parquetSchema) {
+        CacheEntry(Schema avroSchema, MessageType parquetSchema, org.apache.iceberg.Schema icebergSchema) {
             this.avroSchema = avroSchema;
             this.parquetSchema = parquetSchema;
+            this.icebergSchema = icebergSchema;
         }
     }
 
@@ -111,10 +113,10 @@ public final class LruSchemaCache implements SchemaCache {
         CacheKey key = new CacheKey(pojoClass, options);
         CacheEntry existing = cache.get(key);
         if (existing != null) {
-            // Update existing entry with new Avro schema, preserving existing Parquet schema
-            cache.put(key, new CacheEntry(schema, existing.parquetSchema));
+            // Update existing entry with new Avro schema, preserving other schema types.
+            cache.put(key, new CacheEntry(schema, existing.parquetSchema, existing.icebergSchema));
         } else {
-            cache.put(key, new CacheEntry(schema, null));
+            cache.put(key, new CacheEntry(schema, null, null));
         }
     }
 
@@ -135,10 +137,35 @@ public final class LruSchemaCache implements SchemaCache {
         CacheKey key = new CacheKey(pojoClass, options);
         CacheEntry existing = cache.get(key);
         if (existing != null) {
-            // Update existing entry with new Parquet schema, preserving existing Avro schema
-            cache.put(key, new CacheEntry(existing.avroSchema, schema));
+            // Update existing entry with new Parquet schema, preserving other schema types.
+            cache.put(key, new CacheEntry(existing.avroSchema, schema, existing.icebergSchema));
         } else {
-            cache.put(key, new CacheEntry(null, schema));
+            cache.put(key, new CacheEntry(null, schema, null));
+        }
+    }
+
+    @Override
+    public synchronized org.apache.iceberg.Schema getIcebergSchema(Class<?> pojoClass, SchemaOptions options) {
+        CacheKey key = new CacheKey(pojoClass, options);
+        CacheEntry entry = cache.get(key);
+        if (entry != null && entry.icebergSchema != null) {
+            hitCount.incrementAndGet();
+            return entry.icebergSchema;
+        }
+        missCount.incrementAndGet();
+        return null;
+    }
+
+    @Override
+    public synchronized void putIcebergSchema(Class<?> pojoClass,
+                                              SchemaOptions options,
+                                              org.apache.iceberg.Schema schema) {
+        CacheKey key = new CacheKey(pojoClass, options);
+        CacheEntry existing = cache.get(key);
+        if (existing != null) {
+            cache.put(key, new CacheEntry(existing.avroSchema, existing.parquetSchema, schema));
+        } else {
+            cache.put(key, new CacheEntry(null, null, schema));
         }
     }
 
@@ -160,10 +187,8 @@ public final class LruSchemaCache implements SchemaCache {
     }
 
     @Override
-    public CacheStats stats() {
-        long hits = hitCount.get();
-        long misses = missCount.get();
-        return new CacheStats(size(), maxSize, hits, misses);
+    public synchronized CacheStats stats() {
+        return new CacheStats(cache.size(), maxSize, hitCount.get(), missCount.get());
     }
 
     /**

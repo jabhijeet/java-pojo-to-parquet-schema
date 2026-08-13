@@ -6,7 +6,7 @@
 
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>3.0.0</version>
+    <version>2.3.0</version>
     <packaging>jar</packaging>
 
     <name>java-pojo-to-parquet-schema</name>
@@ -29,7 +29,7 @@
         <developer>
             <id>jabhijeet</id>
             <name>AJ Tech</name>
-            <email>Jabhijeet@gmail.com</email>
+            <email>jabhijeet@example.com</email>
         </developer>
     </developers>
 
@@ -63,19 +63,18 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <avro.version>1.12.1</avro.version>
-        <iceberg.version>1.10.1</iceberg.version>
-        <parquet.version>1.17.0</parquet.version>
-        <jackson.version>2.19.4</jackson.version>
+        <parquet.version>1.16.0</parquet.version>
+        <jackson.version>2.17.2</jackson.version>
         <hadoop.version>3.3.6</hadoop.version>
         <slf4j.version>2.0.17</slf4j.version>
 
-        <junit.version>5.14.3</junit.version>
-        <assertj.version>3.27.7</assertj.version>
+        <junit.version>5.11.0</junit.version>
+        <assertj.version>3.26.0</assertj.version>
 
-        <maven.compiler.plugin.version>3.15.0</maven.compiler.plugin.version>
-        <maven.surefire.plugin.version>3.5.5</maven.surefire.plugin.version>
-        <maven.source.plugin.version>3.4.0</maven.source.plugin.version>
-        <maven.javadoc.plugin.version>3.12.0</maven.javadoc.plugin.version>
+        <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
+        <maven.surefire.plugin.version>3.2.5</maven.surefire.plugin.version>
+        <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
+        <maven.javadoc.plugin.version>3.7.0</maven.javadoc.plugin.version>
         <maven.gpg.plugin.version>3.2.4</maven.gpg.plugin.version>
         <central.publishing.plugin.version>0.5.0</central.publishing.plugin.version>
     </properties>
@@ -127,39 +126,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <groupId>org.apache.iceberg</groupId>
-            <artifactId>iceberg-core</artifactId>
-            <version>${iceberg.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.avro</groupId>
-                    <artifactId>avro</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-annotations</artifactId>
-                </exclusion>
-                <!-- httpclient5 pulls slf4j 1.7.x; we use 2.x -->
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-                <!-- iceberg-core pins aircompressor 0.27; parquet-hadoop needs 2.x -->
-                <exclusion>
-                    <groupId>io.airlift</groupId>
-                    <artifactId>aircompressor</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <!--
             Pin jackson-core and jackson-annotations to the same version family as
             jackson-databind. avro:1.12.1 pulls in jackson-core:2.14.3 as a direct
@@ -182,22 +148,16 @@
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-
         <!--
-            hadoop-common is declared optional so it does NOT appear in consumers'
-            transitive dependency graph. It is needed:
-              (a) at compile time — AvroParquetWriter/Reader reference
-                  org.apache.hadoop.conf.Configuration and org.apache.hadoop.fs.Path
-                  in their method signatures; the compiler must resolve those types.
-              (b) at runtime for ParquetIO — Configuration is instantiated by
-                  ParquetWriter.Builder but works with empty/default settings and
-                  does NOT require HADOOP_HOME to be set on the machine.
-            Users who only need schema generation can exclude it entirely.
+            parquet-hadoop (pulled in by parquet-avro) references classes from
+            hadoop-common (e.g. org.apache.hadoop.conf.Configuration) and
+            hadoop-mapreduce-client-core (FileInputFormat) during classloading.
+            We never invoke Hadoop's FileSystem path — in-memory OutputFile/InputFile
+            implementations keep us filesystem-free — but the class references must
+            still resolve. We declare them as optional compile dependencies so consumers
+            of schema-generation-only features do not need to think about hadoop,
+            while users of the Parquet I/O helpers get a working classpath by
+            default.
         -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -213,22 +173,8 @@
                     <groupId>log4j</groupId>
                     <artifactId>log4j</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
-        <!--
-            parquet-hadoop's AvroParquetReader references FileInputFormat from
-            hadoop-mapreduce-client-core during class loading (even when only the
-            in-memory InputFile path is used). Declared optional so schema-only
-            consumers do not inherit this dependency.
-        -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-mapreduce-client-core</artifactId>
@@ -243,57 +189,12 @@
                     <groupId>log4j</groupId>
                     <artifactId>log4j</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>io.airlift</groupId>
-                    <artifactId>aircompressor</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
-
-        <!--
-            iceberg-data provides GenericAppenderFactory (Parquet writer) and
-            IcebergGenerics (reader) needed by in-memory IcebergIO. The actual
-            file I/O uses iceberg-core's InMemoryCatalog + InMemoryFileIO so no
-            Hadoop filesystem is required at runtime.
-        -->
         <dependency>
-            <groupId>org.apache.iceberg</groupId>
-            <artifactId>iceberg-data</artifactId>
-            <version>${iceberg.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.parquet</groupId>
-                    <artifactId>parquet-avro</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.orc</groupId>
-                    <artifactId>orc-core</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <!--
-            iceberg-parquet provides the Parquet write/read path for IcebergIO.
-            It uses parquet-column directly (not parquet-hadoop) — no Hadoop required.
-            Declared explicitly because iceberg-data lists it as optional.
-        -->
-        <dependency>
-            <groupId>org.apache.iceberg</groupId>
-            <artifactId>iceberg-parquet</artifactId>
-            <version>${iceberg.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.parquet</groupId>
-                    <artifactId>parquet-avro</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
         </dependency>
 
         <dependency>
@@ -340,7 +241,7 @@
                         <configuration>
                             <rules>
                                 <requireJavaVersion>
-                                    <version>[21,)</version>
+                                    <version>[21,22)</version>
                                 </requireJavaVersion>
                                 <requireMavenVersion>
                                     <version>[3.9,)</version>

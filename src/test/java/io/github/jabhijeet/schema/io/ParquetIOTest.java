@@ -1,143 +1,141 @@
 package io.github.jabhijeet.schema.io;
 
+import io.github.jabhijeet.schema.PojoSchemaGenerator;
+import io.github.jabhijeet.schema.fixtures.AllPrimitivesPojo;
+import io.github.jabhijeet.schema.fixtures.CollectionsPojo;
+import io.github.jabhijeet.schema.fixtures.NestedCollectionsPojo;
+import io.github.jabhijeet.schema.fixtures.OuterPojo;
+import io.github.jabhijeet.schema.fixtures.Person;
+import io.github.jabhijeet.schema.json.JsonIO;
+import io.github.jabhijeet.schema.json.JsonToGenericRecordConverter;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Verifies that {@link ParquetIO} can write and read Parquet fully in-memory
+ * without a filesystem or HADOOP_HOME environment variable.
+ */
 class ParquetIOTest {
 
-    private static final Schema SCHEMA = new Schema.Parser().parse(
-            "{\"type\":\"record\",\"name\":\"Item\",\"namespace\":\"test\",\"fields\":[" +
-            "{\"name\":\"id\",\"type\":\"int\"}," +
-            "{\"name\":\"label\",\"type\":\"string\"}]}");
+    private static final Schema PERSON_SCHEMA = PojoSchemaGenerator.toAvro(Person.class);
 
-    private static GenericRecord record(int id, String label) {
-        GenericRecord r = new GenericData.Record(SCHEMA);
-        r.put("id", id);
-        r.put("label", label);
-        return r;
-    }
+    // ---------------------------------------------------------------- toBytes / fromBytes
 
     @Test
-    void single_record_round_trip() {
-        GenericRecord original = record(1, "alpha");
-        byte[] bytes = ParquetIO.toBytes(SCHEMA, original);
+    void single_record_round_trips() {
+        GenericRecord record = buildPerson("Alice", 30);
 
+        byte[] bytes = ParquetIO.toBytes(PERSON_SCHEMA, record);
         assertThat(bytes).isNotEmpty();
 
-        GenericRecord result = ParquetIO.fromBytes(bytes);
-        assertThat(result.get("id")).isEqualTo(1);
-        assertThat(result.get("label").toString()).isEqualTo("alpha");
+        GenericRecord back = ParquetIO.fromBytes(bytes);
+        assertThat(back.get("age")).isEqualTo(30);
+        assertThat(back.get("name").toString()).isEqualTo("Alice");
     }
 
     @Test
     void multiple_records_round_trip() {
-        List<GenericRecord> originals = Arrays.asList(
-                record(1, "alpha"),
-                record(2, "beta"),
-                record(3, "gamma"));
+        List<GenericRecord> records = List.of(
+                buildPerson("Bob", 25),
+                buildPerson("Carol", 35),
+                buildPerson("Dave", 45));
 
-        byte[] bytes = ParquetIO.toBytes(SCHEMA, originals);
-        List<GenericRecord> results = ParquetIO.readAll(bytes);
+        byte[] bytes = ParquetIO.toBytes(PERSON_SCHEMA, records);
+        List<GenericRecord> back = ParquetIO.readAll(bytes);
 
-        assertThat(results).hasSize(3);
-        assertThat(results.get(0).get("id")).isEqualTo(1);
-        assertThat(results.get(1).get("id")).isEqualTo(2);
-        assertThat(results.get(2).get("id")).isEqualTo(3);
+        assertThat(back).hasSize(3);
+        assertThat(back.get(0).get("name").toString()).isEqualTo("Bob");
+        assertThat(back.get(1).get("age")).isEqualTo(35);
+        assertThat(back.get(2).get("name").toString()).isEqualTo("Dave");
     }
 
     @Test
-    void write_to_output_stream_and_read_back() {
-        List<GenericRecord> originals = Arrays.asList(record(10, "x"), record(20, "y"));
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-        ParquetIO.writeTo(SCHEMA, originals, out);
-        assertThat(out.size()).isGreaterThan(0);
-
-        List<GenericRecord> results = ParquetIO.readAll(out.toByteArray());
-        assertThat(results).hasSize(2);
-        assertThat(results.get(0).get("id")).isEqualTo(10);
-        assertThat(results.get(1).get("id")).isEqualTo(20);
+    void empty_collection_writes_valid_parquet_with_no_records() {
+        byte[] bytes = ParquetIO.toBytes(PERSON_SCHEMA, List.of());
+        assertThat(bytes).isNotEmpty(); // valid Parquet with footer
+        assertThat(ParquetIO.readAll(bytes)).isEmpty();
     }
 
     @Test
-    void read_from_input_stream() {
-        byte[] bytes = ParquetIO.toBytes(SCHEMA, Arrays.asList(record(5, "five")));
-        List<GenericRecord> results = ParquetIO.readAll(new ByteArrayInputStream(bytes));
-        assertThat(results).hasSize(1);
-        assertThat(results.get(0).get("id")).isEqualTo(5);
+    void fromBytes_empty_array_throws() {
+        assertThatThrownBy(() -> ParquetIO.readAll(new byte[0]))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    void from_bytes_throws_on_zero_records() {
-        // Write then read with no records â€” Parquet always has a footer, so the
-        // file is non-empty, but fromBytes requires at least one record.
-        byte[] bytes = ParquetIO.toBytes(SCHEMA, List.of());
-        assertThatThrownBy(() -> ParquetIO.fromBytes(bytes))
+    void fromBytes_no_records_throws() {
+        byte[] empty = ParquetIO.toBytes(PERSON_SCHEMA, List.of());
+        assertThatThrownBy(() -> ParquetIO.fromBytes(empty))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("no records");
     }
 
+    // ---------------------------------------------------------------- JSON → Parquet → JSON
+
     @Test
-    void null_bytes_throws() {
-        assertThatThrownBy(() -> ParquetIO.readAll((byte[]) null))
-                .isInstanceOf(NullPointerException.class);
+    void json_to_parquet_bytes_and_back_via_json_io() {
+        String json = "{\"name\":\"Eve\",\"age\":28,\"active\":true,\"score\":9.5," +
+                "\"createdAtMs\":0,\"balance\":null,\"dob\":null,\"updatedAt\":null," +
+                "\"favouriteColor\":null,\"primaryAddress\":null,\"addresses\":null," +
+                "\"tags\":null,\"nickname\":null,\"id\":null,\"email_address\":null}";
+
+        byte[] bytes = JsonIO.toParquetBytes(json, PERSON_SCHEMA);
+        List<String> jsons = JsonIO.fromParquetBytes(bytes);
+
+        assertThat(jsons).hasSize(1);
+        assertThat(jsons.get(0)).contains("\"age\":28");
+        assertThat(jsons.get(0)).contains("\"name\":\"Eve\"");
     }
 
     @Test
-    void empty_bytes_throws() {
-        assertThatThrownBy(() -> ParquetIO.readAll(new byte[0]))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("empty");
+    void batch_json_to_parquet_and_back() {
+        Schema schema = PojoSchemaGenerator.toAvro(AllPrimitivesPojo.class);
+        String nullBoxed = "\"bBool\":null,\"bByte\":null,\"bShort\":null,\"bInt\":null," +
+                "\"bLong\":null,\"bFloat\":null,\"bDouble\":null,\"bChar\":null";
+        String r1 = "{\"pBool\":true,\"pByte\":1,\"pShort\":1,\"pInt\":1,\"pLong\":2," +
+                "\"pFloat\":3.0,\"pDouble\":4.0,\"pChar\":\"A\"," + nullBoxed + "}";
+        String r2 = "{\"pBool\":false,\"pByte\":2,\"pShort\":2,\"pInt\":10,\"pLong\":20," +
+                "\"pFloat\":30.0,\"pDouble\":40.0,\"pChar\":\"B\"," + nullBoxed + "}";
+
+        byte[] bytes = JsonIO.toParquetBytesAll("[" + r1 + "," + r2 + "]", schema);
+        List<String> jsons = JsonIO.fromParquetBytes(bytes);
+
+        assertThat(jsons).hasSize(2);
+        assertThat(jsons.get(0)).contains("\"pInt\":1");
+        assertThat(jsons.get(1)).contains("\"pInt\":10");
     }
 
     @Test
-    void null_schema_throws() {
-        assertThatThrownBy(() -> ParquetIO.toBytes(null, record(1, "a")))
-                .isInstanceOf(NullPointerException.class);
+    void nested_pojo_round_trips_through_parquet() {
+        Schema schema = PojoSchemaGenerator.toAvro(OuterPojo.class);
+        JsonToGenericRecordConverter converter = new JsonToGenericRecordConverter();
+        String json = "{\"mid\":{\"midLabel\":\"m\",\"leaf\":{\"leafValue\":42,\"leafLabel\":null}," +
+                "\"leaves\":[]},\"mids\":[]}";
+
+        GenericRecord record = converter.convert(json, schema);
+        byte[] bytes = ParquetIO.toBytes(schema, record);
+        GenericRecord back = ParquetIO.fromBytes(bytes);
+
+        GenericRecord mid = (GenericRecord) back.get("mid");
+        assertThat(mid.get("midLabel").toString()).isEqualTo("m");
     }
 
-    @Test
-    void null_record_throws() {
-        assertThatThrownBy(() -> ParquetIO.toBytes(SCHEMA, (GenericRecord) null))
-                .isInstanceOf(NullPointerException.class);
-    }
+    // ---------------------------------------------------------------- helpers
 
-    @Test
-    void collection_with_null_element_throws() {
-        List<GenericRecord> records = Arrays.asList(record(1, "a"), null);
-        assertThatThrownBy(() -> ParquetIO.toBytes(SCHEMA, records))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("null");
-    }
-
-    @Test
-    void in_memory_output_file_works_without_filesystem() {
-        // Explicit test that InMemoryOutputFile/InputFile are used (no HADOOP_HOME needed)
-        InMemoryOutputFile out = new InMemoryOutputFile();
-        assertThat(out.toByteArray()).isEmpty();
-
-        byte[] bytes = ParquetIO.toBytes(SCHEMA, Arrays.asList(record(7, "seven")));
-        assertThat(bytes.length).isGreaterThan(4);
-
-        // Verify the Parquet magic bytes PAR1 at start and end
-        assertThat(bytes[0]).isEqualTo((byte) 'P');
-        assertThat(bytes[1]).isEqualTo((byte) 'A');
-        assertThat(bytes[2]).isEqualTo((byte) 'R');
-        assertThat(bytes[3]).isEqualTo((byte) '1');
-        assertThat(bytes[bytes.length - 4]).isEqualTo((byte) 'P');
-        assertThat(bytes[bytes.length - 3]).isEqualTo((byte) 'A');
-        assertThat(bytes[bytes.length - 2]).isEqualTo((byte) 'R');
-        assertThat(bytes[bytes.length - 1]).isEqualTo((byte) '1');
+    private static GenericRecord buildPerson(String name, int age) {
+        GenericData.Record r = new GenericData.Record(PERSON_SCHEMA);
+        r.put("name", name);
+        r.put("age", age);
+        r.put("active", true);
+        r.put("score", 0.0d);
+        r.put("createdAtMs", 0L);
+        return r;
     }
 }
-

@@ -284,11 +284,4 @@ public final class GenericRecordToJsonConverter {
         throw new JsonConversionException("$", "Value of type " + clazz.getSimpleName() +
                 " does not match any branch of union " + union);
     }
-
-    private static Schema nonNullBranch(Schema union) {
-        for (Schema branch : union.getTypes()) {
-            if (branch.getType() != Schema.Type.NULL) return branch;
-        }
-        return union.getTypes().get(0);
-    }
 }

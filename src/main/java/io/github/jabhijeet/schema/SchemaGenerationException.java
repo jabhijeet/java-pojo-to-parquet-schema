@@ -1,7 +1,7 @@
 package io.github.jabhijeet.schema;
 
 /** Thrown when a POJO cannot be mapped to a schema. */
-public class SchemaGenerationException extends RuntimeException {
+public final class SchemaGenerationException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 

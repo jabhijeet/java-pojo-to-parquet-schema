@@ -2,12 +2,13 @@ package io.github.jabhijeet.schema;
 
 import io.github.jabhijeet.schema.avro.AvroSchemaBuilder;
 import io.github.jabhijeet.schema.cache.SchemaCache;
+import io.github.jabhijeet.schema.iceberg.IcebergSchemaBuilder;
 import io.github.jabhijeet.schema.parquet.ParquetSchemaBuilder;
 import org.apache.avro.Schema;
 import org.apache.parquet.schema.MessageType;
 
 /**
- * Entry point for converting Java POJOs into Avro and Parquet schemas.
+ * Entry point for converting Java POJOs into Avro, Parquet, and Iceberg schemas.
  *
  * <p>Each call creates fresh per-invocation state, so a single generator is safe
  * to share across threads once constructed.
@@ -16,6 +17,7 @@ import org.apache.parquet.schema.MessageType;
  * // Quickest form
  * Schema avro = PojoSchemaGenerator.toAvro(Person.class);
  * MessageType parquet = PojoSchemaGenerator.toParquet(Person.class);
+ * org.apache.iceberg.Schema iceberg = PojoSchemaGenerator.toIceberg(Person.class);
  *
  * // Configured with caching
  * PojoSchemaGenerator gen = PojoSchemaGenerator.builder()
@@ -65,9 +67,24 @@ public final class PojoSchemaGenerator {
             MessageType cached = cache.getParquetSchema(pojoClass, options);
             if (cached != null) return cached;
         }
-        MessageType schema = new ParquetSchemaBuilder(options).build(pojoClass);
+        Schema avro = generateAvro(pojoClass);
+        MessageType schema = new ParquetSchemaBuilder(options).buildFromAvro(avro, pojoClass);
         if (cache != null) {
             cache.putParquetSchema(pojoClass, options, schema);
+        }
+        return schema;
+    }
+
+    public org.apache.iceberg.Schema generateIceberg(Class<?> pojoClass) {
+        if (pojoClass == null) throw new IllegalArgumentException("pojoClass must not be null");
+        if (cache != null) {
+            org.apache.iceberg.Schema cached = cache.getIcebergSchema(pojoClass, options);
+            if (cached != null) return cached;
+        }
+        Schema avro = generateAvro(pojoClass);
+        org.apache.iceberg.Schema schema = new IcebergSchemaBuilder(options).buildFromAvro(avro, pojoClass);
+        if (cache != null) {
+            cache.putIcebergSchema(pojoClass, options, schema);
         }
         return schema;
     }
@@ -80,12 +97,20 @@ public final class PojoSchemaGenerator {
         return generateParquet(pojoClass).toString();
     }
 
+    public String generateIcebergString(Class<?> pojoClass) {
+        return generateIceberg(pojoClass).toString();
+    }
+
     public static Schema toAvro(Class<?> pojoClass) {
         return new PojoSchemaGenerator().generateAvro(pojoClass);
     }
 
     public static MessageType toParquet(Class<?> pojoClass) {
         return new PojoSchemaGenerator().generateParquet(pojoClass);
+    }
+
+    public static org.apache.iceberg.Schema toIceberg(Class<?> pojoClass) {
+        return new PojoSchemaGenerator().generateIceberg(pojoClass);
     }
 
     /**
@@ -232,4 +257,3 @@ public final class PojoSchemaGenerator {
         }
     }
 }
-

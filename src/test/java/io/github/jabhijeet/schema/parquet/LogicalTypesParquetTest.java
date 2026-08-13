@@ -1,6 +1,7 @@
 package io.github.jabhijeet.schema.parquet;
 
 import io.github.jabhijeet.schema.PojoSchemaGenerator;
+import io.github.jabhijeet.schema.TimezoneHandling;
 import io.github.jabhijeet.schema.fixtures.NumericLogicalPojo;
 import io.github.jabhijeet.schema.fixtures.TemporalTypesPojo;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
@@ -111,6 +112,42 @@ class LogicalTypesParquetTest {
         PrimitiveType t = primitive(NUMERIC, "id");
 
         assertThat(t.getLogicalTypeAnnotation()).isNotNull();
+    }
+
+    @Test
+    void timezone_preserve_maps_offset_types_to_binary_utf8_string() {
+        MessageType schema = PojoSchemaGenerator.builder()
+                .timezoneHandling(TimezoneHandling.PRESERVE)
+                .build()
+                .generateParquet(TemporalTypesPojo.class);
+
+        // OffsetDateTime / ZonedDateTime → plain BINARY UTF8 (ISO-8601 string with offset)
+        for (String name : new String[]{"offsetDateTime", "zonedDateTime"}) {
+            PrimitiveType t = primitive(schema, name);
+            assertThat(t.getPrimitiveTypeName()).as(name).isEqualTo(PrimitiveTypeName.BINARY);
+            assertThat(t.getLogicalTypeAnnotation()).as(name)
+                    .isInstanceOf(LogicalTypeAnnotation.StringLogicalTypeAnnotation.class);
+        }
+        // Instant has no offset → still UTC timestamp
+        PrimitiveType instant = primitive(schema, "instant");
+        assertThat(instant.getLogicalTypeAnnotation())
+                .isInstanceOf(TimestampLogicalTypeAnnotation.class);
+        assertThat(((TimestampLogicalTypeAnnotation) instant.getLogicalTypeAnnotation()).isAdjustedToUTC())
+                .isTrue();
+    }
+
+    @Test
+    void timezone_system_default_maps_utc_types_to_non_utc_timestamp() {
+        MessageType schema = PojoSchemaGenerator.builder()
+                .timezoneHandling(TimezoneHandling.SYSTEM_DEFAULT)
+                .build()
+                .generateParquet(TemporalTypesPojo.class);
+
+        for (String name : new String[]{"offsetDateTime", "zonedDateTime", "instant", "utilDate", "sqlTimestamp"}) {
+            PrimitiveType t = primitive(schema, name);
+            TimestampLogicalTypeAnnotation lt = (TimestampLogicalTypeAnnotation) t.getLogicalTypeAnnotation();
+            assertThat(lt.isAdjustedToUTC()).as(name + " must not be UTC-adjusted in SYSTEM_DEFAULT").isFalse();
+        }
     }
 }
 

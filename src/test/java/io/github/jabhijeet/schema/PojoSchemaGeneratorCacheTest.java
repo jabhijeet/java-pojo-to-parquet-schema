@@ -63,7 +63,7 @@ class PojoSchemaGeneratorCacheTest {
     }
 
     @Test
-    void cache_works_for_both_avro_and_parquet() {
+    void cache_works_for_avro_parquet_and_iceberg() {
         PojoSchemaGenerator generator = PojoSchemaGenerator.builder()
                 .cacheStrategy(CacheStrategy.LRU)
                 .cacheSize(10)
@@ -79,9 +79,16 @@ class PojoSchemaGeneratorCacheTest {
         MessageType parquet2 = generator.generateParquet(Person.class);
         assertThat(parquet2).isSameAs(parquet1);
 
+        // Generate Iceberg schema
+        org.apache.iceberg.Schema iceberg1 = generator.generateIceberg(Person.class);
+        org.apache.iceberg.Schema iceberg2 = generator.generateIceberg(Person.class);
+        assertThat(iceberg2).isSameAs(iceberg1);
+
         SchemaCache.CacheStats stats = generator.cacheStats();
-        assertThat(stats.hitCount()).isEqualTo(2); // One for Avro, one for Parquet
-        assertThat(stats.missCount()).isEqualTo(2); // First generation of each
+        // generateParquet and generateIceberg each call generateAvro internally,
+        // adding 2 extra avro hits (parquet call + iceberg call after avro is warm).
+        assertThat(stats.hitCount()).isEqualTo(5);
+        assertThat(stats.missCount()).isEqualTo(3); // First generation of each
     }
 
     @Test
@@ -110,6 +117,7 @@ class PojoSchemaGeneratorCacheTest {
         SchemaCache customCache = new SchemaCache() {
             private Schema lastAvroSchema;
             private MessageType lastParquetSchema;
+            private org.apache.iceberg.Schema lastIcebergSchema;
             
             @Override
             public Schema getAvroSchema(Class<?> pojoClass, SchemaOptions options) {
@@ -130,16 +138,31 @@ class PojoSchemaGeneratorCacheTest {
             public void putParquetSchema(Class<?> pojoClass, SchemaOptions options, MessageType schema) {
                 lastParquetSchema = schema;
             }
+
+            @Override
+            public org.apache.iceberg.Schema getIcebergSchema(Class<?> pojoClass, SchemaOptions options) {
+                return lastIcebergSchema;
+            }
+
+            @Override
+            public void putIcebergSchema(Class<?> pojoClass,
+                                         SchemaOptions options,
+                                         org.apache.iceberg.Schema schema) {
+                lastIcebergSchema = schema;
+            }
             
             @Override
             public void clear() {
                 lastAvroSchema = null;
                 lastParquetSchema = null;
+                lastIcebergSchema = null;
             }
             
             @Override
             public int size() {
-                return (lastAvroSchema != null ? 1 : 0) + (lastParquetSchema != null ? 1 : 0);
+                return (lastAvroSchema != null ? 1 : 0)
+                        + (lastParquetSchema != null ? 1 : 0)
+                        + (lastIcebergSchema != null ? 1 : 0);
             }
             
             @Override
@@ -177,6 +200,7 @@ class PojoSchemaGeneratorCacheTest {
                     for (int j = 0; j < iterations; j++) {
                         generator.generateAvro(pojoClass);
                         generator.generateParquet(pojoClass);
+                        generator.generateIceberg(pojoClass);
                     }
                 } catch (Exception e) {
                     errors.incrementAndGet();
@@ -194,8 +218,9 @@ class PojoSchemaGeneratorCacheTest {
         // Verify cache statistics
         SchemaCache.CacheStats stats = generator.cacheStats();
         assertThat(stats.hitCount()).isGreaterThan(0);
-        // Total operations = threadCount * iterations * 2 (Avro + Parquet)
-        int totalOperations = threadCount * iterations * 2;
-        assertThat(stats.hitCount() + stats.missCount()).isEqualTo(totalOperations);
+        // generateParquet and generateIceberg each add an extra avro lookup on cache miss,
+        // so total ops >= threadCount * iterations * 3 (avro=1, parquet=1..2, iceberg=1..2).
+        int minOperations = threadCount * iterations * 3;
+        assertThat(stats.hitCount() + stats.missCount()).isGreaterThanOrEqualTo(minOperations);
     }
 }

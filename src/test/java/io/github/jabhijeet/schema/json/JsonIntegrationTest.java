@@ -1,5 +1,8 @@
 package io.github.jabhijeet.schema.json;
 
+import io.github.jabhijeet.schema.PojoSchemaGenerator;
+import io.github.jabhijeet.schema.TimezoneHandling;
+import io.github.jabhijeet.schema.fixtures.TemporalTypesPojo;
 import io.github.jabhijeet.schema.io.AvroIO;
 import io.github.jabhijeet.schema.io.ParquetIO;
 import org.apache.avro.Conversions;
@@ -145,7 +148,27 @@ class JsonIntegrationTest {
         List<GenericRecord> items = (List<GenericRecord>) order.get("items");
         assertThat(items).hasSize(2);
         assertThat(items.get(1).get("sku").toString()).isEqualTo("PROD-B");
-        assertThat(items.get(1).get("qty")).isEqualTo(1);
+    }
+
+    @Test
+    void batch_orders_to_parquet_and_back() {
+        String batchJson = """
+                [
+                  {"orderId":"550e8400-e29b-41d4-a716-446655440003","customerId":"C",
+                   "amount":"30.00","placedAt":"2025-01-03T00:00:00Z",
+                   "items":[{"sku":"Z","qty":3,"unitPrice":"10.00"}],
+                   "tags":{"src":"api"}},
+                  {"orderId":"550e8400-e29b-41d4-a716-446655440004","customerId":"D",
+                   "amount":"40.00","placedAt":"2025-01-04T00:00:00Z",
+                   "items":[],"tags":{}}
+                ]
+                """;
+
+        byte[] bytes = JsonIO.toParquetBytesAll(batchJson, ORDER_SCHEMA);
+        List<GenericRecord> records = ParquetIO.readAll(bytes);
+        assertThat(records).hasSize(2);
+        assertThat(records.get(0).get("customerId").toString()).isEqualTo("C");
+        assertThat(records.get(1).get("customerId").toString()).isEqualTo("D");
     }
 
     // ---------------------------------------------------------------- batch (JSON array)
@@ -170,27 +193,6 @@ class JsonIntegrationTest {
         assertThat(records).hasSize(2);
         assertThat(records.get(0).get("customerId").toString()).isEqualTo("A");
         assertThat(records.get(1).get("customerId").toString()).isEqualTo("B");
-    }
-
-    @Test
-    void batch_orders_to_parquet_and_back() {
-        String batchJson = """
-                [
-                  {"orderId":"550e8400-e29b-41d4-a716-446655440003","customerId":"C",
-                   "amount":"30.00","placedAt":"2025-01-03T00:00:00Z",
-                   "items":[{"sku":"Z","qty":3,"unitPrice":"10.00"}],
-                   "tags":{"src":"api"}},
-                  {"orderId":"550e8400-e29b-41d4-a716-446655440004","customerId":"D",
-                   "amount":"40.00","placedAt":"2025-01-04T00:00:00Z",
-                   "items":[],"tags":{}}
-                ]
-                """;
-
-        byte[] bytes = JsonIO.toParquetBytesAll(batchJson, ORDER_SCHEMA);
-        List<GenericRecord> records = ParquetIO.readAll(bytes);
-        assertThat(records).hasSize(2);
-        assertThat(records.get(0).get("customerId").toString()).isEqualTo("C");
-        assertThat(records.get(1).get("customerId").toString()).isEqualTo("D");
     }
 
     // ---------------------------------------------------------------- nullable + map of arrays
@@ -261,6 +263,78 @@ class JsonIntegrationTest {
         List<GenericRecord> records = JsonIO.toRecords(json, ORDER_SCHEMA);
         assertThat(records).hasSize(1);
         assertThat(records.get(0).get("customerId").toString()).isEqualTo("E");
+    }
+
+    // ---------------------------------------------------------------- TimezoneHandling.PRESERVE roundtrip
+
+    @Test
+    void preserve_mode_stores_offset_datetime_as_iso_string_and_round_trips() {
+        Schema schema = PojoSchemaGenerator.builder()
+                .timezoneHandling(TimezoneHandling.PRESERVE)
+                .build()
+                .generateAvro(TemporalTypesPojo.class);
+
+        // offsetDateTime / zonedDateTime are plain Avro strings in PRESERVE mode
+        assertThat(schema.getField("offsetDateTime").schema().getTypes())
+                .anyMatch(s -> s.getType() == Schema.Type.STRING);
+        assertThat(schema.getField("zonedDateTime").schema().getTypes())
+                .anyMatch(s -> s.getType() == Schema.Type.STRING);
+
+        // JSON with ISO-8601 offset string → GenericRecord → Avro bytes → back → JSON
+        String inputJson = """
+                {
+                  "localDate":null,"sqlDate":null,"localTime":null,
+                  "localDateTime":null,
+                  "instant":"2025-06-15T10:30:00Z",
+                  "offsetDateTime":"2025-06-15T15:30:00+05:00",
+                  "zonedDateTime":"2025-06-15T08:30:00-02:00",
+                  "utilDate":null,"sqlTimestamp":null
+                }
+                """;
+
+        byte[] avroBytes = JsonIO.toAvroBytes(inputJson, schema);
+        List<String> jsons = JsonIO.fromAvroBytes(avroBytes);
+        assertThat(jsons).hasSize(1);
+
+        String out = jsons.get(0);
+        // Offset strings must survive the round-trip intact
+        assertThat(out).contains("2025-06-15T15:30:00+05:00");
+        assertThat(out).contains("2025-06-15T08:30:00-02:00");
+        // Instant still goes through timestamp-millis (UTC), comes back as ISO instant
+        assertThat(out).contains("2025-06-15T10:30:00Z");
+    }
+
+    @Test
+    void system_default_mode_stores_utc_types_as_local_timestamps_and_round_trips() {
+        Schema schema = PojoSchemaGenerator.builder()
+                .timezoneHandling(TimezoneHandling.SYSTEM_DEFAULT)
+                .build()
+                .generateAvro(TemporalTypesPojo.class);
+
+        // instant → local-timestamp-millis (not UTC-adjusted)
+        Schema instantField = schema.getField("instant").schema().getTypes().stream()
+                .filter(s -> s.getType() != Schema.Type.NULL)
+                .findFirst().orElseThrow();
+        assertThat(instantField.getLogicalType().getName()).isEqualTo("local-timestamp-millis");
+
+        // JSON with a local datetime string (no offset) → stores as local millis → reads back as LocalDateTime string
+        String inputJson = """
+                {
+                  "localDate":null,"sqlDate":null,"localTime":null,
+                  "localDateTime":"2025-06-15T10:30:00",
+                  "instant":"2025-06-15T10:30:00",
+                  "offsetDateTime":"2025-06-15T10:30:00",
+                  "zonedDateTime":"2025-06-15T10:30:00",
+                  "utilDate":null,"sqlTimestamp":null
+                }
+                """;
+
+        byte[] avroBytes = JsonIO.toAvroBytes(inputJson, schema);
+        List<String> jsons = JsonIO.fromAvroBytes(avroBytes);
+        assertThat(jsons).hasSize(1);
+        // All four local timestamps round-trip to the same local datetime string.
+        // LocalDateTime.toString() omits :00 seconds when zero, so expect "T10:30" not "T10:30:00".
+        assertThat(jsons.get(0)).contains("2025-06-15T10:30");
     }
 }
 

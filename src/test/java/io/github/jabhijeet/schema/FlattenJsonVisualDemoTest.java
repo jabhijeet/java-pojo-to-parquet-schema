@@ -76,7 +76,7 @@ class FlattenJsonVisualDemoTest {
     private static final String FIXTURE_DIR     = "demo-fixtures/";
     private static final String INPUT_JSON_RESOURCE = FIXTURE_DIR + "employee-flat.input.json";
     private static final String AVSC_RESOURCE   = FIXTURE_DIR + "employee-flat.avsc";
-    private static final String AVRO_RESOURCE   = FIXTURE_DIR + "employee-flat.avro";
+    private static final String AVRO_RESOURCE    = FIXTURE_DIR + "employee-flat.avro";
     private static final String PARQUET_RESOURCE = FIXTURE_DIR + "employee-flat.parquet";
 
     private static final PojoSchemaGenerator FLAT = PojoSchemaGenerator.builder()
@@ -118,7 +118,7 @@ class FlattenJsonVisualDemoTest {
         System.out.println("size: " + avroBytes.length + " bytes");
         System.out.println("hex : " + hexPreview(avroBytes, 128));
 
-        printBanner("6. PARQUET binary payload (Snappy-compressed)");
+        printBanner("6. PARQUET binary payload (Snappy-compressed, in-memory — no HADOOP_HOME needed)");
         System.out.println("size: " + parquetBytes.length + " bytes");
         System.out.println("hex : " + hexPreview(parquetBytes, 128));
 
@@ -128,18 +128,14 @@ class FlattenJsonVisualDemoTest {
 
         // ---------------------------------------------------------------- JSON round-trip
 
-        String jsonFromRecord        = JsonIO.fromRecord(record);
-        List<String> jsonFromAvro    = JsonIO.fromAvroBytes(avroBytes);
-        List<String> jsonFromParquet = JsonIO.fromParquetBytes(parquetBytes);
+        String jsonFromRecord     = JsonIO.fromRecord(record);
+        List<String> jsonFromAvro = JsonIO.fromAvroBytes(avroBytes);
 
-        printBanner("8. JSON ROUND-TRIP: flat GenericRecord → nested JSON (JsonIO.fromRecord)");
+        printBanner("6. JSON ROUND-TRIP: flat GenericRecord → nested JSON (JsonIO.fromRecord)");
         System.out.println(prettyJson(jsonFromRecord));
 
-        printBanner("9. JSON ROUND-TRIP: Avro bytes → nested JSON (JsonIO.fromAvroBytes)");
+        printBanner("7. JSON ROUND-TRIP: Avro bytes → nested JSON (JsonIO.fromAvroBytes)");
         System.out.println(prettyJson(jsonFromAvro.get(0)));
-
-        printBanner("10. JSON ROUND-TRIP: Parquet bytes → nested JSON (JsonIO.fromParquetBytes)");
-        System.out.println(prettyJson(jsonFromParquet.get(0)));
 
         // ---------------------------------------------------------------- write to target/
 
@@ -151,9 +147,8 @@ class FlattenJsonVisualDemoTest {
         Files.writeString(outDir.resolve("employee-flat.input.json"), prettyJson(inputJson));
         Files.writeString(outDir.resolve("employee-flat.output.json"), prettyJson(jsonFromRecord));
 
-        printBanner("11. FILES WRITTEN (open in external viewers; promote to resources/ to activate golden assertions)");
+        printBanner("8. FILES WRITTEN (open in external viewers; promote to resources/ to activate golden assertions)");
         System.out.println(outDir.resolve("employee-flat.avro").toAbsolutePath());
-        System.out.println(outDir.resolve("employee-flat.parquet").toAbsolutePath());
         System.out.println(outDir.resolve("employee-flat.avsc").toAbsolutePath());
 
         // ---------------------------------------------------------------- schema-shape assertions (always run)
@@ -167,9 +162,8 @@ class FlattenJsonVisualDemoTest {
 
         // ---------------------------------------------------------------- golden-fixture assertions (skipped until fixtures are promoted)
 
-        byte[] goldenAvsc    = tryReadResource(AVSC_RESOURCE);
-        byte[] goldenAvro    = tryReadResource(AVRO_RESOURCE);
-        byte[] goldenParquet = tryReadResource(PARQUET_RESOURCE);
+        byte[] goldenAvsc = tryReadResource(AVSC_RESOURCE);
+        byte[] goldenAvro = tryReadResource(AVRO_RESOURCE);
 
         assumeTrue(goldenAvsc != null,
                 "Golden .avsc not yet bootstrapped — copy target/demo-output/employee-flat.avsc "
@@ -187,19 +181,19 @@ class FlattenJsonVisualDemoTest {
                 .as("record decoded from %s must match freshly generated record", AVRO_RESOURCE)
                 .isEqualTo(record);
 
-        assumeTrue(goldenParquet != null,
-                "Golden .parquet not yet bootstrapped — copy target/demo-output/employee-flat.parquet "
-                        + "to src/test/resources/demo-fixtures/ and re-run");
-        GenericRecord expectedFromParquet = ParquetIO.fromBytes(goldenParquet);
-        assertThat(expectedFromParquet)
-                .as("record decoded from %s must match freshly generated record", PARQUET_RESOURCE)
-                .isEqualTo(record);
+        byte[] goldenParquet = tryReadResource(PARQUET_RESOURCE);
+        if (goldenParquet != null) {
+            GenericRecord expectedFromParquet = ParquetIO.fromBytes(goldenParquet);
+            assertThat(expectedFromParquet)
+                    .as("record decoded from %s must match freshly generated record", PARQUET_RESOURCE)
+                    .isEqualTo(record);
+        }
 
         // ---------------------------------------------------------------- JSON round-trip assertions
-        // Verify that fromRecord / fromAvroBytes / fromParquetBytes all reconstruct
-        // the original nested JSON from the flat Avro record.
 
         ObjectMapper mapper = new ObjectMapper();
+
+        List<String> jsonFromParquet = JsonIO.fromParquetBytes(parquetBytes);
 
         for (String json : List.of(jsonFromRecord, jsonFromAvro.get(0), jsonFromParquet.get(0))) {
             JsonNode node = mapper.readTree(json);

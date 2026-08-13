@@ -6,6 +6,7 @@ import io.github.jabhijeet.schema.SchemaGenerationException;
 import io.github.jabhijeet.schema.SchemaOptions;
 import io.github.jabhijeet.schema.SchemaProps;
 import io.github.jabhijeet.schema.TimestampPrecision;
+import io.github.jabhijeet.schema.TimezoneHandling;
 import io.github.jabhijeet.schema.annotation.SchemaDecimal;
 import io.github.jabhijeet.schema.annotation.SchemaField;
 import io.github.jabhijeet.schema.annotation.SchemaIgnore;
@@ -199,22 +200,16 @@ public final class AvroSchemaBuilder {
             return LogicalTypes.timeMicros().addToSchema(Schema.create(Schema.Type.LONG));
         }
         if (cls == LocalDateTime.class) {
-            return LogicalTypes.localTimestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
+            boolean micros = options.timestampPrecision() == TimestampPrecision.MICROS
+                    || options.timestampPrecision() == TimestampPrecision.NANOS;
+            return (micros ? LogicalTypes.localTimestampMicros() : LogicalTypes.localTimestampMillis())
+                    .addToSchema(Schema.create(Schema.Type.LONG));
         }
-        if (cls == Instant.class || cls == Timestamp.class || cls == java.util.Date.class
-                || cls == OffsetDateTime.class || cls == ZonedDateTime.class) {
-            TimestampPrecision precision = options.timestampPrecision();
-            switch (precision) {
-                case MILLIS:
-                    return LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
-                case MICROS:
-                    return LogicalTypes.timestampMicros().addToSchema(Schema.create(Schema.Type.LONG));
-                case NANOS:
-                    // Avro doesn't have nanosecond precision, fall back to micros
-                    return LogicalTypes.timestampMicros().addToSchema(Schema.create(Schema.Type.LONG));
-                default:
-                    return LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
-            }
+        if (cls == OffsetDateTime.class || cls == ZonedDateTime.class) {
+            return mapOffsetTimestamp(context);
+        }
+        if (cls == Instant.class || cls == Timestamp.class || cls == java.util.Date.class) {
+            return mapInstantTimestamp(context);
         }
 
         if (cls.isEnum()) return enumSchema(cls);
@@ -229,6 +224,37 @@ public final class AvroSchemaBuilder {
         }
 
         return buildRecord(cls);
+    }
+
+    private Schema mapOffsetTimestamp(Field context) {
+        boolean micros = options.timestampPrecision() == TimestampPrecision.MICROS
+                || options.timestampPrecision() == TimestampPrecision.NANOS;
+        return switch (options.timezoneHandling()) {
+            case PRESERVE ->
+                // Store as ISO-8601 string to preserve the exact offset (e.g. "+05:30").
+                Schema.create(Schema.Type.STRING);
+            case SYSTEM_DEFAULT ->
+                // Zone-agnostic: consumer interprets in a configured local timezone.
+                (micros ? LogicalTypes.localTimestampMicros() : LogicalTypes.localTimestampMillis())
+                        .addToSchema(Schema.create(Schema.Type.LONG));
+            default ->
+                // UTC: normalise to epoch millis/micros.
+                (micros ? LogicalTypes.timestampMicros() : LogicalTypes.timestampMillis())
+                        .addToSchema(Schema.create(Schema.Type.LONG));
+        };
+    }
+
+    private Schema mapInstantTimestamp(Field context) {
+        boolean micros = options.timestampPrecision() == TimestampPrecision.MICROS
+                || options.timestampPrecision() == TimestampPrecision.NANOS;
+        // Instant/Date/Timestamp have no offset info; PRESERVE falls back to UTC.
+        boolean useLocal = options.timezoneHandling() == TimezoneHandling.SYSTEM_DEFAULT;
+        if (useLocal) {
+            return (micros ? LogicalTypes.localTimestampMicros() : LogicalTypes.localTimestampMillis())
+                    .addToSchema(Schema.create(Schema.Type.LONG));
+        }
+        return (micros ? LogicalTypes.timestampMicros() : LogicalTypes.timestampMillis())
+                .addToSchema(Schema.create(Schema.Type.LONG));
     }
 
     private Schema decimalSchema(Field context) {
