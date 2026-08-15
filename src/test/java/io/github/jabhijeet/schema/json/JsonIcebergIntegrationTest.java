@@ -4,11 +4,17 @@ import io.github.jabhijeet.schema.PojoSchemaGenerator;
 import io.github.jabhijeet.schema.fixtures.AllPrimitivesPojo;
 import io.github.jabhijeet.schema.fixtures.NestedCollectionsPojo;
 import io.github.jabhijeet.schema.fixtures.OuterPojo;
+import io.github.jabhijeet.schema.fixtures.TemporalTypesPojo;
 import io.github.jabhijeet.schema.io.IcebergIO;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.iceberg.data.Record;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -126,5 +132,39 @@ class JsonIcebergIntegrationTest {
 
         assertThat(jsons).hasSize(1);
         assertThat(jsons.get(0)).contains("NYC");
+    }
+
+    @Test
+    void temporal_logical_values_are_written_as_iceberg_temporal_objects() {
+        Schema schema = PojoSchemaGenerator.toAvro(TemporalTypesPojo.class);
+        GenericData.Record record = new GenericData.Record(schema);
+        record.put("localDate", (int) LocalDate.of(2025, 6, 15).toEpochDay());
+        record.put("localTime", LocalTime.of(10, 30).toNanoOfDay() / 1_000L);
+        record.put("localDateTime", LocalDateTime.of(2025, 6, 15, 10, 30)
+                .toInstant(java.time.ZoneOffset.UTC).toEpochMilli());
+        record.put("instant", Instant.parse("2025-06-15T10:30:00Z").toEpochMilli());
+
+        IcebergIO.InMemoryTable table = IcebergIO.createTable(schema);
+        assertThat(table.schema().findField("localDateTime").type().toString())
+                .isEqualTo("timestamp");
+        IcebergIO.append(table, schema, List.of(record));
+
+        Record row = IcebergIO.readAll(table).get(0);
+        assertThat(row.getField("localDate")).isInstanceOf(LocalDate.class);
+        assertThat(row.getField("localTime")).isInstanceOf(LocalTime.class);
+        assertThat(row.getField("localDateTime")).isInstanceOf(LocalDateTime.class);
+        assertThat(row.getField("instant")).isNotInstanceOf(Number.class);
+    }
+
+    @Test
+    void append_rejects_records_from_a_different_schema() {
+        Schema tableSchema = PojoSchemaGenerator.toAvro(AllPrimitivesPojo.class);
+        Schema recordSchema = PojoSchemaGenerator.toAvro(OuterPojo.class);
+        IcebergIO.InMemoryTable table = IcebergIO.createTable(tableSchema);
+        GenericData.Record record = new GenericData.Record(recordSchema);
+
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(
+                () -> IcebergIO.append(table, recordSchema, List.of(record))))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

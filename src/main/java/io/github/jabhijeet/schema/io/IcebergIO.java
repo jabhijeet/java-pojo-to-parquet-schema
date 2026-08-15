@@ -19,11 +19,18 @@ import org.apache.iceberg.io.CloseableIterable;
 import org.apache.iceberg.io.DataWriter;
 import org.apache.iceberg.io.OutputFile;
 import org.apache.iceberg.types.Types;
+import org.apache.iceberg.types.TypeUtil;
+import io.github.jabhijeet.schema.iceberg.IcebergSchemaBuilder;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 /**
@@ -88,7 +95,7 @@ public final class IcebergIO {
      */
     public static InMemoryTable createTable(Schema avroSchema) {
         Objects.requireNonNull(avroSchema, "avroSchema");
-        return createTable(AvroSchemaUtil.toIceberg(avroSchema));
+        return createTable(IcebergSchemaBuilder.fromAvro(avroSchema));
     }
 
     // ---------------------------------------------------------------- write
@@ -107,6 +114,11 @@ public final class IcebergIO {
         if (avroRecords.isEmpty()) return;
 
         Table table = memTable.table;
+        org.apache.iceberg.Schema expectedSchema = TypeUtil.reassignIds(
+                IcebergSchemaBuilder.fromAvro(avroSchema), table.schema());
+        if (!table.schema().sameSchema(expectedSchema)) {
+            throw new IllegalArgumentException("Avro schema does not match the Iceberg table schema");
+        }
         GenericAppenderFactory factory =
                 new GenericAppenderFactory(table.schema(), table.spec());
         String path = "data/" + UUID.randomUUID() + ".parquet";
@@ -125,6 +137,9 @@ public final class IcebergIO {
                 for (GenericRecord avroRecord : avroRecords) {
                     if (avroRecord == null) {
                         throw new IllegalArgumentException("records collection contains null");
+                    }
+                    if (!avroSchema.equals(avroRecord.getSchema())) {
+                        throw new IllegalArgumentException("record schema does not match avroSchema");
                     }
                     writer.write(toIcebergRecord(avroRecord, table.schema()));
                 }
@@ -209,9 +224,9 @@ public final class IcebergIO {
             case LONG    -> convertAvroLongToIceberg(value, logical);
             case FLOAT   -> ((Number) value).floatValue();
             case DOUBLE  -> ((Number) value).doubleValue();
-            case DATE    -> ((Number) value).intValue();
+            case DATE    -> LocalDate.ofEpochDay(((Number) value).intValue());
             case TIME    -> convertAvroTimeToIceberg(value, logical);
-            case TIMESTAMP -> convertAvroTimestampToIceberg(value, logical);
+            case TIMESTAMP -> convertAvroTimestampToIceberg(value, logical, icebergType);
             case STRING  -> value.toString();
             case UUID    -> value instanceof UUID u ? u : UUID.fromString(value.toString());
             case FIXED, BINARY -> asByteBuffer(value);
@@ -325,19 +340,34 @@ public final class IcebergIO {
     }
 
     private static Object convertAvroTimeToIceberg(Object value, LogicalType logical) {
+        long micros;
         if (logical instanceof LogicalTypes.TimeMillis) {
-            return Math.multiplyExact(((Number) value).longValue(), 1_000L);
+            micros = Math.multiplyExact(((Number) value).longValue(), 1_000L);
+        } else {
+            micros = ((Number) value).longValue();
         }
-        return ((Number) value).longValue(); // micros — pass through
+        return LocalTime.ofNanoOfDay(Math.multiplyExact(micros, 1_000L));
     }
 
-    private static Object convertAvroTimestampToIceberg(Object value, LogicalType logical) {
+    private static Object convertAvroTimestampToIceberg(Object value, LogicalType logical,
+                                                        org.apache.iceberg.types.Type icebergType) {
         long v = ((Number) value).longValue();
         if (logical instanceof LogicalTypes.TimestampMillis
                 || logical instanceof LogicalTypes.LocalTimestampMillis) {
-            return Math.multiplyExact(v, 1_000L);
+            if (icebergType.asPrimitiveType() instanceof Types.TimestampType timestamp
+                    && !timestamp.shouldAdjustToUTC()) {
+                return LocalDateTime.ofInstant(Instant.ofEpochMilli(v), ZoneOffset.UTC);
+            }
+            return Instant.ofEpochMilli(v);
         }
-        return v; // already micros
+        if (icebergType.asPrimitiveType() instanceof Types.TimestampType timestamp
+                && !timestamp.shouldAdjustToUTC()) {
+            return LocalDateTime.ofInstant(
+                    Instant.ofEpochSecond(Math.floorDiv(v, 1_000_000L),
+                            Math.floorMod(v, 1_000_000L) * 1_000L), ZoneOffset.UTC);
+        }
+        return Instant.ofEpochSecond(Math.floorDiv(v, 1_000_000L),
+                Math.floorMod(v, 1_000_000L) * 1_000L);
     }
 
     private static BigDecimal convertAvroDecimalToIceberg(Object value, Schema schema,

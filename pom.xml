@@ -65,8 +65,17 @@
         <avro.version>1.12.1</avro.version>
         <iceberg.version>1.10.1</iceberg.version>
         <parquet.version>1.17.0</parquet.version>
-        <jackson.version>2.19.4</jackson.version>
-        <hadoop.version>3.3.6</hadoop.version>
+        <!-- jackson-databind 2.19.4 is affected by CVE-2026-54512 / CVE-2026-54513
+             (both CVSS 8.1), CVE-2026-54514, CVE-2026-54515 and CVE-2026-59888;
+             all are fixed in 2.22.1. -->
+        <jackson.version>2.22.1</jackson.version>
+        <!-- jackson-annotations has used a shorter version string since 2.20
+             ("2.22") while jackson-core and jackson-databind keep full patch
+             versions ("2.22.1"). They can no longer share a single property. -->
+        <jackson-annotations.version>2.22</jackson-annotations.version>
+        <!-- hadoop-common 3.3.6 is affected by CVE-2024-23454 (local temp-file
+             information disclosure); fixed in the 3.4.x line. -->
+        <hadoop.version>3.4.3</hadoop.version>
         <slf4j.version>2.0.17</slf4j.version>
 
         <junit.version>5.14.3</junit.version>
@@ -175,7 +184,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
+            <version>${jackson-annotations.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

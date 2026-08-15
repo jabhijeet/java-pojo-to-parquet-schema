@@ -12,6 +12,28 @@ Zero-boilerplate Java library — reflection on a POJO produces Avro/Parquet/Ice
 
 ---
 
+## Project structure
+
+All production code lives under `src/main/java/io/github/jabhijeet/schema/`:
+
+```
+├── annotation/     # @SchemaField, @SchemaIgnore, @SchemaDecimal
+├── avro/           # AvroSchemaBuilder — POJO → Avro Schema (logical types, flattening, naming)
+├── parquet/        # ParquetSchemaBuilder — Avro Schema → Parquet MessageType
+├── iceberg/        # IcebergSchemaBuilder — Avro Schema → Iceberg Schema (preserves local timestamps)
+├── json/           # JsonIO facade + JsonToGenericRecordConverter / GenericRecordToJsonConverter
+├── io/             # AvroIO, ParquetIO, IcebergIO + InMemoryInputFile / InMemoryOutputFile
+├── cache/          # SchemaCache + thread-safe LruSchemaCache (configurable LRU eviction)
+├── PojoSchemaGenerator.java    # facade: toAvro / toParquet / toIceberg + fluent builder
+├── SchemaOptions.java          # generator configuration (naming, timestamp, flattening, nullability)
+└── …                            # enums & support types (TimestampPrecision, TimezoneHandling, CacheStrategy, …)
+```
+
+`src/test/java` mirrors the same package layout. Parquet round-trips run through an in-memory
+`ParquetTestSupport` harness; binary fixtures live in `src/test/resources/demo-fixtures`.
+
+---
+
 ## Requirements
 
 - Java **21+**
@@ -47,10 +69,14 @@ implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.0.0'
 | `org.apache.iceberg:iceberg-core`              | 1.10.1  | compile  |
 | `org.apache.iceberg:iceberg-data`              | 1.10.1  | compile  |
 | `org.apache.iceberg:iceberg-parquet`           | 1.10.1  | compile  |
-| `com.fasterxml.jackson.core:jackson-databind`  | 2.19.4  | compile  |
+| `com.fasterxml.jackson.core:jackson-core`       | 2.22.1  | compile  |
+| `com.fasterxml.jackson.core:jackson-databind`   | 2.22.1  | compile  |
+| `com.fasterxml.jackson.core:jackson-annotations`| 2.22    | compile  |
 | `org.slf4j:slf4j-api`                          | 2.0.17  | compile  |
-| `org.apache.hadoop:hadoop-common`              | 3.3.6   | optional |
-| `org.apache.hadoop:hadoop-mapreduce-client-core` | 3.3.6 | optional |
+| `org.apache.hadoop:hadoop-common`              | 3.4.3   | optional |
+| `org.apache.hadoop:hadoop-mapreduce-client-core` | 3.4.3 | optional |
+
+\* `jackson-annotations` uses Jackson's shorter per-minor version string (`2.22`) while `jackson-core` / `jackson-databind` are `2.22.1`.
 
 Hadoop deps are `optional` — they satisfy compile-time type references in `parquet-avro` and allow `ParquetIO` to run. No `HADOOP_HOME` environment variable is required. Schema-generation-only consumers can exclude them entirely.
 
@@ -422,7 +448,7 @@ System.out.println(jsons.get(0));
 | `boolean` | `true` / `false` |
 | `int` | JSON integer in `[-2^31, 2^31)` |
 | `long` | JSON integer or numeric string (supports 64-bit IDs > JS safe-integer range) |
-| `float` / `double` | JSON number |
+| `float` / `double` | JSON number; values that would overflow to infinity or underflow to zero are rejected |
 | `string` | JSON string; numbers/booleans coerced via `.toString()` |
 | `string` + `uuid` | Canonical UUID string, validated |
 | `bytes` / `fixed` | Standard or URL-safe Base64 string |
@@ -586,6 +612,8 @@ Iceberg Record ──► Avro GenericRecord ──► JSON
 
 - **Apache Avro 1.12.1** — addresses CVE-2025-33042 (fixed in 1.11.5+)
 - **Apache Parquet 1.17.0** — addresses CVE-2025-30065 and CVE-2025-46762 (fixed in 1.15.2+)
+- **Jackson 2.22.1** — resolves CVE-2026-54512 and CVE-2026-54513 (arbitrary class instantiation via polymorphic-type validator bypasses, both CVSS 8.1), CVE-2026-54514 (SSRF via `InetSocketAddress` eager DNS resolution), CVE-2026-54515 (`@JsonIgnoreProperties` deserialization bypass), and CVE-2026-59888 (`@JsonIgnore` bypass via `PropertyNamingStrategy`). `jackson-annotations` is pinned to `2.22` because Jackson versions annotations separately from core/databind.
+- **Apache Hadoop 3.4.3** *(optional)* — addresses CVE-2024-23454 (local temp-file information disclosure; fixed in the 3.4.x line).
 
 For production deployments:
 - Scan dependencies with OWASP Dependency Check, Snyk, or Dependabot.

@@ -38,7 +38,8 @@ import java.util.regex.Pattern;
  * <h2>Type mapping</h2>
  * <ul>
  *   <li>Avro {@code null / boolean / int / long / float / double} â†’ JSON scalar of matching kind.
- *       Integer JSON numbers fit into {@code float/double} as well.</li>
+ *       Integer JSON numbers fit into {@code float/double} as well. Values that
+ *       overflow or underflow the target range are rejected.</li>
  *   <li>Avro {@code string} â†’ JSON string. {@code uuid} logical type requires a
  *       canonical {@link UUID} string.</li>
  *   <li>Avro {@code bytes / fixed} â†’ JSON string encoded with standard Base64
@@ -409,15 +410,56 @@ public final class JsonToGenericRecordConverter {
     }
 
     private static float asFloat(JsonNode node, String path) {
-        if (node.isNumber()) return node.floatValue();
-        throw new JsonConversionException(path,
-                "Expected float but was " + describeNode(node));
+        if (!node.isNumber()) {
+            throw new JsonConversionException(path,
+                    "Expected float but was " + describeNode(node));
+        }
+        double d = node.doubleValue();
+        if (!Double.isFinite(d)) {
+            throw new JsonConversionException(path,
+                    "Value " + truncate(node.asText()) + " is not a finite number");
+        }
+        float f = (float) d;
+        if (Float.isInfinite(f)) {
+            throw new JsonConversionException(path,
+                    "Value " + truncate(node.asText()) + " overflows the 32-bit float range");
+        }
+        if (f == 0.0f && isUnderflowToZero(node)) {
+            throw new JsonConversionException(path,
+                    "Value " + truncate(node.asText()) + " underflows the 32-bit float range (rounds to zero)");
+        }
+        return f;
     }
 
     private static double asDouble(JsonNode node, String path) {
-        if (node.isNumber()) return node.doubleValue();
-        throw new JsonConversionException(path,
-                "Expected double but was " + describeNode(node));
+        if (!node.isNumber()) {
+            throw new JsonConversionException(path,
+                    "Expected double but was " + describeNode(node));
+        }
+        double d = node.doubleValue();
+        if (!Double.isFinite(d)) {
+            throw new JsonConversionException(path,
+                    "Value " + truncate(node.asText()) + " overflows the 64-bit double range");
+        }
+        if (d == 0.0 && isUnderflowToZero(node)) {
+            throw new JsonConversionException(path,
+                    "Value " + truncate(node.asText()) + " underflows the 64-bit double range (rounds to zero)");
+        }
+        return d;
+    }
+
+    /**
+     * Detects a silent numeric underflow: a JSON number that is definitely non-zero
+     * but whose {@code double}/{@code float} value has already collapsed to zero.
+     *
+     * <p>Only detectable when the node still exposes an exact representation —
+     * {@code BigIntegerNode} or (with {@code USE_BIG_DECIMAL_FOR_FLOATS}) a
+     * {@code DecimalNode}. Values parsed as {@code DoubleNode} lose their original
+     * magnitude during parsing, so an already-parsed {@code 0.0} is treated as a
+     * literal zero.
+     */
+    private static boolean isUnderflowToZero(JsonNode node) {
+        return !node.isIntegralNumber() && node.decimalValue().signum() != 0;
     }
 
     private static String asString(JsonNode node, String path) {

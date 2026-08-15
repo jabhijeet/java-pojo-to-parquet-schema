@@ -1,5 +1,7 @@
 package io.github.jabhijeet.schema.json;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -560,6 +562,58 @@ class JsonToGenericRecordConverterTest {
                         JsonConversionException jce = (JsonConversionException) e;
                         assertThat(jce.path()).contains("outer").contains("val");
                     });
+        }
+
+        @Test
+        void float_overflow_to_infinity_is_rejected() {
+            Schema s = record("R", field("v", "\"float\""));
+            assertThatThrownBy(() -> converter.convert("{\"v\":3.5e38}", s))
+                    .isInstanceOf(JsonConversionException.class)
+                    .hasMessageContaining("overflows");
+        }
+
+        @Test
+        void float_negative_overflow_to_infinity_is_rejected() {
+            Schema s = record("R", field("v", "\"float\""));
+            assertThatThrownBy(() -> converter.convert("{\"v\":-3.5e38}", s))
+                    .isInstanceOf(JsonConversionException.class)
+                    .hasMessageContaining("overflows");
+        }
+
+        @Test
+        void double_overflow_to_infinity_is_rejected() {
+            Schema s = record("R", field("v", "\"double\""));
+            assertThatThrownBy(() -> converter.convert("{\"v\":1e999}", s))
+                    .isInstanceOf(JsonConversionException.class)
+                    .hasMessageContaining("overflows");
+        }
+
+        @Test
+        void double_underflow_to_zero_is_rejected() {
+            // USE_BIG_DECIMAL_FOR_FLOATS keeps the exact magnitude so the underflow is detectable.
+            JsonToGenericRecordConverter decimalConverter = new JsonToGenericRecordConverter(
+                    new ObjectMapper().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS));
+            Schema s = record("R", field("v", "\"double\""));
+            assertThatThrownBy(() -> decimalConverter.convert("{\"v\":1e-999}", s))
+                    .isInstanceOf(JsonConversionException.class)
+                    .hasMessageContaining("underflows");
+        }
+
+        @Test
+        void float_underflow_to_zero_is_rejected() {
+            JsonToGenericRecordConverter decimalConverter = new JsonToGenericRecordConverter(
+                    new ObjectMapper().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS));
+            Schema s = record("R", field("v", "\"float\""));
+            assertThatThrownBy(() -> decimalConverter.convert("{\"v\":1e-50}", s))
+                    .isInstanceOf(JsonConversionException.class)
+                    .hasMessageContaining("underflows");
+        }
+
+        @Test
+        void float_at_maximum_value_is_still_accepted() {
+            Schema s = record("R", field("v", "\"float\""));
+            GenericRecord r = converter.convert("{\"v\":3.4028234e38}", s);
+            assertThat(r.get("v")).isEqualTo(Float.MAX_VALUE);
         }
     }
 }

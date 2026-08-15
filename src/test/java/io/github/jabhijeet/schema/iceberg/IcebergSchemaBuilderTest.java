@@ -114,22 +114,22 @@ class IcebergSchemaBuilderTest {
         assertThat(schema.findField("offsetDateTime").type().typeId()).isEqualTo(Type.TypeID.TIMESTAMP);
         assertThat(schema.findField("zonedDateTime").type().typeId()).isEqualTo(Type.TypeID.TIMESTAMP);
 
-        // LocalDateTime uses local-timestamp-millis (MILLIS precision default).
-        // Iceberg's AvroSchemaUtil only handles local-timestamp-*micros*; the millis
-        // variant falls through to LONG. Use TimestampPrecision.MICROS to get TIMESTAMP.
-        assertThat(schema.findField("localDateTime").type().typeId()).isEqualTo(Type.TypeID.LONG);
+        // LocalDateTime is a timestamp without timezone.
+        assertThat(schema.findField("localDateTime").type().typeId()).isEqualTo(Type.TypeID.TIMESTAMP);
+        assertThat(schema.findField("localDateTime").type().asPrimitiveType().toString())
+                .isEqualTo("timestamp");
     }
 
     @Test
-    void local_datetime_also_maps_to_long_with_micros_precision() {
+    void local_datetime_preserves_timestamp_without_zone_with_micros_precision() {
         Schema schema = PojoSchemaGenerator.builder()
                 .timestampPrecision(io.github.jabhijeet.schema.TimestampPrecision.MICROS)
                 .build()
                 .generateIceberg(TemporalTypesPojo.class);
 
-        // Iceberg 1.10.1 AvroSchemaUtil does not recognise local-timestamp-micros either;
-        // both local-timestamp variants fall through to LONG.
-        assertThat(schema.findField("localDateTime").type().typeId()).isEqualTo(Type.TypeID.LONG);
+        assertThat(schema.findField("localDateTime").type().typeId()).isEqualTo(Type.TypeID.TIMESTAMP);
+        assertThat(schema.findField("localDateTime").type().asPrimitiveType().toString())
+                .isEqualTo("timestamp");
     }
 
     @Test
