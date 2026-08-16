@@ -90,6 +90,15 @@ After the command exits, confirm at:
 https://central.sonatype.com/artifact/io.github.jabhijeet/java-pojo-to-parquet-schema
 ```
 
+Also check the deployment state at:
+```
+https://central.sonatype.com/publishing/deployments
+```
+
+Do not rerun `deploy` after a bundle has uploaded until its deployment state is
+known. A local Maven failure while polling Central does not necessarily mean the
+uploaded deployment failed, and released coordinates cannot be uploaded again.
+
 ---
 
 ## What the `release` profile does

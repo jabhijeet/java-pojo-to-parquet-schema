@@ -1,5 +1,16 @@
 # Release Notes
 
+## 3.2.0
+
+### Release tooling
+
+- Upgraded `central-publishing-maven-plugin` from `0.5.0` to `0.11.0`.
+- Added deployment-state verification guidance before retrying an upload. This
+  prevents duplicate attempts when Maven fails while polling after Central has
+  already published an immutable release.
+
+---
+
 ## 3.1.0
 
 ### Changes
