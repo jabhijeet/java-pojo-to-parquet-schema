@@ -1,5 +1,8 @@
 # Release Process
 
+Releases are published manually from the repository root. GitHub Actions does
+not publish artifacts to Maven Central.
+
 ## Prerequisites
 
 | Requirement | Notes |
@@ -64,7 +67,9 @@ git push origin main --tags
 
 ### 6. Deploy to Maven Central
 
-Run with the `release` profile. The plugin blocks until Central confirms publication.
+From the repository root, run with the `release` profile. The plugin reads the
+`central` credentials from your local `~/.m2/settings.xml`, prompts for the GPG
+passphrase, and blocks until Central confirms publication.
 
 ```
 D:\Tools\apache-maven-3.9.6\bin\mvn clean deploy -Prelease
