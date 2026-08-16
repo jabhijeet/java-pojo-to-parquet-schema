@@ -1,5 +1,14 @@
 # Release Notes
 
+## 3.1.0
+
+### Changes
+
+- Prepared the next minor release for Maven Central. Maven Central releases are
+  immutable, so this version supersedes the already-published `3.0.0` artifact.
+
+---
+
 ## 3.0.0
 
 ### Breaking changes

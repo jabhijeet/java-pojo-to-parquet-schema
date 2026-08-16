@@ -47,18 +47,18 @@ All production code lives under `src/main/java/io/github/jabhijeet/schema/`:
 <dependency>
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>3.0.0</version>
+    <version>3.1.0</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL):**
 ```kotlin
-implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:3.0.0")
+implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:3.1.0")
 ```
 
 **Gradle (Groovy DSL):**
 ```groovy
-implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.0.0'
+implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.1.0'
 ```
 
 ### Dependencies
