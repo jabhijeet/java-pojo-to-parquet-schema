@@ -78,3 +78,4 @@ replay_pid*
 *.tar.gz
 *.rar
 /.kilo/
+/.github/
