@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
@@ -82,10 +83,30 @@ class AvroIOTest {
 
     @Test
     void read_from_input_stream() {
-        byte[] bytes = AvroIO.toBytes(SCHEMA, Arrays.asList(record(5, "five")));
+        byte[] bytes = AvroIO.toBytes(SCHEMA, List.of(record(5, "five")));
         List<GenericRecord> results = AvroIO.readAll(new ByteArrayInputStream(bytes));
         assertThat(results).hasSize(1);
         assertThat(results.get(0).get("id")).isEqualTo(5);
+    }
+
+    @Test
+    void single_record_to_input_stream_round_trips() {
+        InputStream stream = AvroIO.toInputStream(SCHEMA, record(7, "seven"));
+
+        List<GenericRecord> results = AvroIO.readAll(stream);
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).get("id")).isEqualTo(7);
+        assertThat(results.get(0).get("name").toString()).isEqualTo("seven");
+    }
+
+    @Test
+    void multiple_records_to_input_stream_round_trip() {
+        InputStream stream = AvroIO.toInputStream(
+                SCHEMA, List.of(record(8, "eight"), record(9, "nine")));
+
+        List<GenericRecord> results = AvroIO.readAll(stream);
+        assertThat(results).extracting(record -> record.get("id"))
+                .containsExactly(8, 9);
     }
 
     @Test
@@ -130,4 +151,3 @@ class AvroIOTest {
                 .hasMessageContaining("null");
     }
 }
-

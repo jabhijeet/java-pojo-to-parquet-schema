@@ -64,7 +64,9 @@
 
         <avro.version>1.12.1</avro.version>
         <iceberg.version>1.10.1</iceberg.version>
-        <parquet.version>1.16.1</parquet.version>
+        <!-- 1.16.1 was never published to Maven Central; 1.16.0 is the
+             published Parquet release in this compatible series. -->
+        <parquet.version>1.16.0</parquet.version>
         <!-- jackson-databind 2.19.4 is affected by CVE-2026-54512 / CVE-2026-54513
              (both CVSS 8.1), CVE-2026-54514, CVE-2026-54515 and CVE-2026-59888;
              all are fixed in 2.22.1. -->

@@ -1,10 +1,16 @@
-public class AvroSchemaBuilderTest {
+package io.github.jabhijeet.schema.avro;
+
+import io.github.jabhijeet.schema.SchemaOptions;
+import io.github.jabhijeet.schema.fixtures.Person;
+import org.apache.avro.Schema;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+class AvroSchemaBuilderTest {
     @org.junit.jupiter.api.Test
-    public void testBuildSchema() {
+    void testBuildSchema() {
         // Basic test to ensure schema creation works
-        Schema schema = new AvroSchemaBuilder(new SchemaOptions()).build(MyPojo.class);
+        Schema schema = new AvroSchemaBuilder(SchemaOptions.defaults()).build(Person.class);
         assertNotNull(schema);
     }
 }
-
-// Add additional test cases as needed

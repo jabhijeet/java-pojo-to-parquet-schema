@@ -9,16 +9,8 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.io.*;
+import java.util.*;
 
 /**
  * In-memory / stream-based Avro write and read helpers.
@@ -66,6 +58,39 @@ public final class AvroIO {
         ByteArrayOutputStream out = new ByteArrayOutputStream(4096);
         writeTo(schema, records, out, codec);
         return out.toByteArray();
+    }
+
+    /**
+     * Serializes one record to a self-contained Avro Object Container File and
+     * returns a caller-owned stream positioned at its first byte.
+     *
+     * <p>The complete file is materialized in memory before the stream is returned.
+     */
+    public static InputStream toInputStream(Schema schema, GenericRecord record) {
+        return new ByteArrayInputStream(toBytes(schema, record));
+    }
+
+    /**
+     * Serializes records to a self-contained Avro Object Container File and
+     * returns a caller-owned stream positioned at its first byte.
+     *
+     * <p>The complete file is materialized in memory before the stream is returned.
+     */
+    public static InputStream toInputStream(Schema schema,
+                                            Collection<? extends GenericRecord> records) {
+        return new ByteArrayInputStream(toBytes(schema, records));
+    }
+
+    /**
+     * Serializes records with {@code codec} and returns a caller-owned stream
+     * positioned at the first byte of the Avro Object Container File.
+     *
+     * <p>The complete file is materialized in memory before the stream is returned.
+     */
+    public static InputStream toInputStream(Schema schema,
+                                            Collection<? extends GenericRecord> records,
+                                            CodecFactory codec) {
+        return new ByteArrayInputStream(toBytes(schema, records, codec));
     }
 
     /**
@@ -151,4 +176,3 @@ public final class AvroIO {
         }
     }
 }
-

@@ -55,6 +55,85 @@ Any code that subclassed `SchemaGenerationException` will no longer compile.
 
 ### New features
 
+#### Schema-free JSON conversion to Avro, Parquet, and Iceberg
+
+`JsonIO` now infers an Avro record schema directly from a JSON object or JSON
+array. Callers no longer need to generate or provide a schema for common
+ingestion flows:
+
+```java
+String json = """
+    {"id":"evt-1","active":true,"score":42,"labels":["new","priority"]}
+    """;
+
+GenericRecord record = JsonIO.toRecord(json);
+byte[] avroBytes = JsonIO.toAvroBytes(json);
+byte[] parquetBytes = JsonIO.toParquetBytes(json);
+IcebergIO.InMemoryTable table = JsonIO.toIcebergTable(json);
+```
+
+Top-level arrays are supported by the batch APIs. Their record schema is
+inferred from the first element and reused for every row:
+
+```java
+String batch = """
+    [
+      {"id":"evt-1","active":true,"score":10},
+      {"id":"evt-2","active":false,"score":25}
+    ]
+    """;
+
+List<GenericRecord> records = JsonIO.toRecords(batch);
+byte[] avroBatch = JsonIO.toAvroBytesAll(batch);
+byte[] parquetBatch = JsonIO.toParquetBytesAll(batch);
+IcebergIO.InMemoryTable table = JsonIO.toIcebergTable(batch);
+```
+
+The new `json.infer` package separates inference from conversion and I/O:
+
+- `JsonSchemaInferrer` — extension point for inference strategies.
+- `DefaultJsonSchemaInferrer` — default recursive JSON-to-Avro implementation.
+- `SchemaInferenceOptions` — immutable options for root name, nested-array
+  sample size, maximum depth, null handling, and field naming.
+- `SchemaInferenceException` — reports invalid JSON and unsupported inference
+  conditions.
+- `InferredSchemaCache` — bounded, thread-safe LRU storage for inferred schemas.
+
+Default scalar mapping is boolean → Avro `boolean`, integral number → `long`,
+fractional number → `double`, and string → `string`. Objects become nested
+records and arrays infer their element type from sampled values. The inferrer
+does not guess UUID, decimal, date, or timestamp logical types from strings;
+use the existing explicit-schema overloads when semantic logical types or a
+stable external schema contract are required.
+
+Batch elements must be compatible with the schema inferred from the first
+element. Later shape drift is rejected by the existing path-qualified
+`JsonConversionException` validation.
+
+#### Avro and Parquet `InputStream` output
+
+Avro and Parquet conversions can now return caller-owned, byte-array-backed
+input streams suitable for synchronous object-storage and HTTP upload APIs:
+
+```java
+InputStream avro = JsonIO.toAvroInputStream(json);
+InputStream parquet = JsonIO.toParquetInputStream(json);
+InputStream avroBatch = JsonIO.toAvroInputStreamAll(batch);
+InputStream parquetBatch = JsonIO.toParquetInputStreamAll(batch);
+```
+
+Explicit-schema overloads are also available, and low-level callers can use
+`AvroIO.toInputStream(schema, records)` or
+`ParquetIO.toInputStream(schema, records)`. Each method materializes the complete
+file in memory before returning the stream, ensuring that Avro headers and
+Parquet footers are complete.
+
+Iceberg tables do not have an equivalent single-stream representation because
+they consist of metadata, manifests, snapshots, and data files. Upload a
+standalone Parquet stream only when a Parquet object, rather than an Iceberg
+table, is the intended result. Persistent Iceberg-on-S3 deployments must use an
+Iceberg catalog and S3-backed `FileIO`.
+
 #### Fully in-memory Iceberg I/O — no Hadoop required
 
 `IcebergIO` uses `InMemoryCatalog` + `InMemoryFileIO` from `iceberg-core` and writes data in Parquet format via `iceberg-parquet` (uses `parquet-column`, not `parquet-hadoop`). No filesystem, no `HADOOP_HOME`.

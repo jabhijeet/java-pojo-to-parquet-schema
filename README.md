@@ -7,8 +7,8 @@ Zero-boilerplate Java library — reflection on a POJO produces Avro/Parquet/Ice
 **Three capabilities:**
 
 1. **POJO → Schema** — reflect a Java class into Avro `Schema`, Parquet `MessageType`, and Iceberg `Schema`.
-2. **JSON → Avro/Parquet bytes** — convert JSON documents to in-memory binary. No `HADOOP_HOME`.
-3. **JSON → Iceberg table (in-memory)** — append JSON rows to a fully in-memory Iceberg table backed by `InMemoryCatalog`. No filesystem, no `HADOOP_HOME`.
+2. **JSON → Avro/Parquet bytes** — infer the schema from a JSON object or array, or supply an explicit schema. No `HADOOP_HOME`.
+3. **JSON → Iceberg table (in-memory)** — infer the schema and append JSON rows to a fully in-memory Iceberg table backed by `InMemoryCatalog`. No filesystem, no `HADOOP_HOME`.
 
 ---
 
@@ -21,7 +21,8 @@ All production code lives under `src/main/java/io/github/jabhijeet/schema/`:
 ├── avro/           # AvroSchemaBuilder — POJO → Avro Schema (logical types, flattening, naming)
 ├── parquet/        # ParquetSchemaBuilder — Avro Schema → Parquet MessageType
 ├── iceberg/        # IcebergSchemaBuilder — Avro Schema → Iceberg Schema (preserves local timestamps)
-├── json/           # JsonIO facade + JsonToGenericRecordConverter / GenericRecordToJsonConverter
+├── json/           # JsonIO facade + JSON/GenericRecord converters
+│   └── infer/      # JSON schema inference, options, exceptions, and inferred-schema cache
 ├── io/             # AvroIO, ParquetIO, IcebergIO + InMemoryInputFile / InMemoryOutputFile
 ├── cache/          # SchemaCache + thread-safe LruSchemaCache (configurable LRU eviction)
 ├── PojoSchemaGenerator.java    # facade: toAvro / toParquet / toIceberg + fluent builder
@@ -65,7 +66,7 @@ implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.0.0'
 | Artifact                                       | Version | Scope    |
 | ---------------------------------------------- | ------- | -------- |
 | `org.apache.avro:avro`                         | 1.12.1  | compile  |
-| `org.apache.parquet:parquet-avro`              | 1.17.0  | compile  |
+| `org.apache.parquet:parquet-avro`              | 1.16.0  | compile  |
 | `org.apache.iceberg:iceberg-core`              | 1.10.1  | compile  |
 | `org.apache.iceberg:iceberg-data`              | 1.10.1  | compile  |
 | `org.apache.iceberg:iceberg-parquet`           | 1.10.1  | compile  |
@@ -261,6 +262,9 @@ public class Invoice {
 }
 ```
 
+The annotations are honored by all three schema targets. `static` and
+`transient` fields are excluded automatically, even without `@SchemaIgnore`.
+
 ### Flattening nested records
 
 Set `flattenNestedRecords(true)` to collapse nested POJOs into path-joined leaf columns. Useful for analytics tools that prefer flat/columnar schemas.
@@ -313,7 +317,105 @@ System.out.println(gen.cacheStats());        // hit/miss counters, hit ratio
 
 No filesystem, no `HADOOP_HOME`. All I/O is in-memory via custom `OutputFile`/`InputFile` implementations.
 
+### Schema-free conversion
+
+`JsonIO` can infer an Avro record schema directly from a JSON object and use it
+immediately for Avro, Parquet, or Iceberg conversion. Existing overloads that
+accept an explicit `Schema` remain available when a stable external contract is
+required.
+
+```java
+import io.github.jabhijeet.schema.io.AvroIO;
+import io.github.jabhijeet.schema.io.ParquetIO;
+import io.github.jabhijeet.schema.json.JsonIO;
+import org.apache.avro.generic.GenericRecord;
+
+String json = """
+    {
+      "orderId": "ord-1001",
+      "customerId": "CUST-001",
+      "amount": 199.98,
+      "paid": true,
+      "items": [
+        {"sku": "PROD-A", "quantity": 2}
+      ]
+    }
+    """;
+
+// Schema inferred and used within each call.
+GenericRecord record = JsonIO.toRecord(json);
+byte[] avroBytes = JsonIO.toAvroBytes(json);
+byte[] parquetBytes = JsonIO.toParquetBytes(json);
+
+GenericRecord avroRecord = AvroIO.fromBytes(avroBytes);
+GenericRecord parquetRecord = ParquetIO.fromBytes(parquetBytes);
+```
+
+The default inference mapping is deliberately conservative:
+
+| Observed JSON value | Inferred Avro type |
+|---------------------|--------------------|
+| boolean | `boolean` |
+| integral number | `long` |
+| fractional number | `double` |
+| string | `string` |
+| object | nested `record` |
+| array | `array` inferred from sampled elements |
+| null without a non-null sample | `union[null, string]` |
+
+No semantic logical type is guessed from string contents. For example, UUID,
+decimal, date, and timestamp strings remain Avro `string` values. Supply an
+explicit schema when those logical types are required.
+
+### Schema-free JSON arrays
+
+Use the `*All` methods for a top-level JSON array. The record schema is inferred
+from the first array element, then every element is validated and converted
+against that schema.
+
+```java
+String batch = """
+    [
+      {"id":"evt-1","active":true,"score":10},
+      {"id":"evt-2","active":false,"score":25}
+    ]
+    """;
+
+List<GenericRecord> records = JsonIO.toRecords(batch);
+byte[] avroBatch = JsonIO.toAvroBytesAll(batch);
+byte[] parquetBatch = JsonIO.toParquetBytesAll(batch);
+```
+
+Batch elements must have a compatible shape. A later element with missing
+required fields or incompatible nested values fails with a path-qualified
+`JsonConversionException`. For evolving or heterogeneous events, infer or
+define one schema separately and use the explicit-schema overloads.
+
+### Configuring inference
+
+Use immutable `SchemaInferenceOptions` when the defaults are not appropriate:
+
+```java
+import io.github.jabhijeet.schema.json.infer.SchemaInferenceOptions;
+
+SchemaInferenceOptions options = SchemaInferenceOptions.builder()
+        .rootName("OrderEvent")
+        .sampleSize(20) // nested arrays: inspect up to 20 elements for promotion
+        .maxDepth(64)
+        .build();
+
+GenericRecord record = JsonIO.toRecord(json, options);
+byte[] parquetBytes = JsonIO.toParquetBytes(json, options);
+```
+
+`sampleSize` defaults to `1`; increase it when nested arrays can contain numeric
+promotion such as integral and fractional values. `maxDepth` defaults to `32`
+and rejects excessively deep input with `SchemaInferenceException`.
+
 ### One-call conversion with `JsonIO`
+
+The explicit-schema API remains useful when the schema is generated from a POJO,
+loaded from a registry, or must carry Avro logical types:
 
 ```java
 import io.github.jabhijeet.schema.PojoSchemaGenerator;
@@ -356,6 +458,72 @@ GenericRecord first = AvroIO.fromBytes(avroBytes);
 // From InputStream (stream is closed on return)
 List<GenericRecord> fromStream = AvroIO.readAll(inputStream);
 ```
+
+### Avro / Parquet as `InputStream`
+
+Use the stream-returning methods when an object-storage SDK, HTTP client, or
+other integration accepts an `InputStream`. Single-object and batch methods are
+available with either inferred or explicit schemas:
+
+```java
+import java.io.InputStream;
+
+// Schema inferred from JSON.
+InputStream avroStream = JsonIO.toAvroInputStream(json);
+InputStream parquetStream = JsonIO.toParquetInputStream(json);
+
+// Schema inferred from the first element of a JSON array.
+InputStream avroBatchStream = JsonIO.toAvroInputStreamAll(batch);
+InputStream parquetBatchStream = JsonIO.toParquetInputStreamAll(batch);
+
+// Explicit schema variants.
+InputStream typedAvroStream = JsonIO.toAvroInputStream(json, schema);
+InputStream typedParquetStream = JsonIO.toParquetInputStream(json, schema);
+```
+
+The low-level record APIs provide the same capability:
+
+```java
+InputStream avroStream = AvroIO.toInputStream(schema, records);
+InputStream parquetStream = ParquetIO.toInputStream(schema, records);
+```
+
+Each method first creates a complete in-memory Avro Object Container File or
+Parquet file, then returns a caller-owned `ByteArrayInputStream` positioned at
+byte zero. This guarantees that Avro headers and Parquet footers are complete,
+but it is not constant-memory streaming.
+
+### Uploading to Amazon S3
+
+AWS SDK for Java v2 synchronous uploads accept an `InputStream` plus its exact
+content length. The returned streams are byte-array-backed, so `available()` is
+the complete payload length before reading begins:
+
+```java
+import java.io.InputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+S3Client s3 = S3Client.create();
+
+try (InputStream stream = JsonIO.toParquetInputStream(json)) {
+    long contentLength = stream.available();
+
+    PutObjectRequest request = PutObjectRequest.builder()
+            .bucket("analytics-data")
+            .key("orders/order-1001.parquet")
+            .contentType("application/vnd.apache.parquet")
+            .build();
+
+    s3.putObject(request, RequestBody.fromInputStream(stream, contentLength));
+}
+```
+
+Use `JsonIO.toAvroInputStream(json)` and an `.avro` object key for Avro uploads.
+The AWS SDK is not a dependency of this library; the example applies when the
+application already uses AWS SDK v2. Other storage clients can consume the same
+caller-owned streams.
 
 ### Bytes → JSON (full round-trip)
 
@@ -440,6 +608,46 @@ System.out.println(jsons.get(0));
 // → {"orderId":"550e8400-...","customerId":"CUST-001","amount":"199.98",...}
 ```
 
+### Nested JSON and flattened schemas
+
+The same JSON converter works with both regular nested records and schemas
+created with `flattenNestedRecords(true)`. For example:
+
+```java
+public class Address {
+    public String city;
+    public String country;
+}
+
+public class Customer {
+    public String id;
+    public Address address;
+}
+
+Schema schema = PojoSchemaGenerator.builder()
+        .flattenNestedRecords(true)
+        .build()
+        .generateAvro(Customer.class);
+
+// The schema has: id, address_city, address_country
+String nestedJson = """
+    {"id":"C-1","address":{"city":"Paris","country":"FR"}}
+    """;
+GenericRecord record = JsonIO.toRecord(nestedJson, schema);
+
+// Literal flat keys are accepted as well.
+GenericRecord flatRecord = JsonIO.toRecord(
+        "{\"id\":\"C-1\",\"address_city\":\"Paris\",\"address_country\":\"FR\"}",
+        schema);
+
+// Flat fields are reconstructed when converting back to JSON.
+System.out.println(JsonIO.fromRecord(record));
+// {"id":"C-1","address":{"city":"Paris","country":"FR"}}
+```
+
+Flattening only traverses nested POJO records. Collection and map boundaries
+are preserved, so a `List<Address>` remains an array of nested records.
+
 ### JSON type mapping
 
 | Avro schema type | Accepted JSON forms |
@@ -482,11 +690,48 @@ try {
 }
 ```
 
+`JsonConversionException.path()` identifies the JSON location of the first
+conversion failure. Unknown fields in JSON objects are ignored; missing fields
+use a schema default, become `null` when the field is nullable, or fail when
+the field is required.
+
 ---
 
 ## Use case 3 — JSON → Iceberg table (in-memory)
 
 Fully in-memory: uses Iceberg's `InMemoryCatalog` and `InMemoryFileIO`. Data is written in Parquet format via `iceberg-parquet` (uses `parquet-column`, not `parquet-hadoop`). No filesystem, no `HADOOP_HOME`.
+
+The schema can also be inferred directly. A JSON object creates one row; a JSON
+array infers the table schema from its first element and appends all rows.
+
+```java
+String json = """
+    {"orderId":"ord-1001","createdAtMs":1716200000000,"paid":true}
+    """;
+
+IcebergIO.InMemoryTable inferredTable = JsonIO.toIcebergTable(json);
+List<String> inferredRows = JsonIO.fromIcebergTable(inferredTable);
+
+String batch = """
+    [
+      {"orderId":"ord-1001","createdAtMs":1716200000000,"paid":true},
+      {"orderId":"ord-1002","createdAtMs":1716200005000,"paid":false}
+    ]
+    """;
+
+// The first element defines the inferred table schema; both rows are appended.
+IcebergIO.InMemoryTable inferredBatchTable = JsonIO.toIcebergTable(batch);
+List<String> inferredBatchRows = JsonIO.fromIcebergTable(inferredBatchTable);
+System.out.println(inferredBatchRows.size()); // 2
+```
+
+An Iceberg table is not one Avro or Parquet object that can be represented by a
+single `InputStream`. It consists of table metadata, manifests, snapshots, and
+one or more data files. `JsonIO.toIcebergTable` intentionally creates an
+in-memory Iceberg table; moving a real Iceberg table to S3 requires configuring
+an Iceberg catalog and S3-backed `FileIO`, then appending data through Iceberg's
+table APIs. Use `toParquetInputStream` only when the desired S3 object is a
+standalone Parquet file, not an Iceberg table.
 
 ### Quick start
 
@@ -611,7 +856,7 @@ Iceberg Record ──► Avro GenericRecord ──► JSON
 ## Security
 
 - **Apache Avro 1.12.1** — addresses CVE-2025-33042 (fixed in 1.11.5+)
-- **Apache Parquet 1.17.0** — addresses CVE-2025-30065 and CVE-2025-46762 (fixed in 1.15.2+)
+- **Apache Parquet 1.16.0** — addresses CVE-2025-30065 and CVE-2025-46762 (fixed in 1.15.2+)
 - **Jackson 2.22.1** — resolves CVE-2026-54512 and CVE-2026-54513 (arbitrary class instantiation via polymorphic-type validator bypasses, both CVSS 8.1), CVE-2026-54514 (SSRF via `InetSocketAddress` eager DNS resolution), CVE-2026-54515 (`@JsonIgnoreProperties` deserialization bypass), and CVE-2026-59888 (`@JsonIgnore` bypass via `PropertyNamingStrategy`). `jackson-annotations` is pinned to `2.22` because Jackson versions annotations separately from core/databind.
 - **Apache Hadoop 3.4.3** *(optional)* — addresses CVE-2024-23454 (local temp-file information disclosure; fixed in the 3.4.x line).
 

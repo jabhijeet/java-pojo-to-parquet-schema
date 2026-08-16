@@ -2,8 +2,6 @@ package io.github.jabhijeet.schema.io;
 
 import io.github.jabhijeet.schema.PojoSchemaGenerator;
 import io.github.jabhijeet.schema.fixtures.AllPrimitivesPojo;
-import io.github.jabhijeet.schema.fixtures.CollectionsPojo;
-import io.github.jabhijeet.schema.fixtures.NestedCollectionsPojo;
 import io.github.jabhijeet.schema.fixtures.OuterPojo;
 import io.github.jabhijeet.schema.fixtures.Person;
 import io.github.jabhijeet.schema.json.JsonIO;
@@ -13,6 +11,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,6 +53,28 @@ class ParquetIOTest {
         assertThat(back.get(0).get("name").toString()).isEqualTo("Bob");
         assertThat(back.get(1).get("age")).isEqualTo(35);
         assertThat(back.get(2).get("name").toString()).isEqualTo("Dave");
+    }
+
+    @Test
+    void single_record_to_input_stream_round_trips() {
+        InputStream stream = ParquetIO.toInputStream(
+                PERSON_SCHEMA, buildPerson("Stream", 33));
+
+        List<GenericRecord> back = ParquetIO.readAll(stream);
+        assertThat(back).hasSize(1);
+        assertThat(back.get(0).get("name").toString()).isEqualTo("Stream");
+        assertThat(back.get(0).get("age")).isEqualTo(33);
+    }
+
+    @Test
+    void multiple_records_to_input_stream_round_trip() {
+        InputStream stream = ParquetIO.toInputStream(PERSON_SCHEMA, List.of(
+                buildPerson("First", 41), buildPerson("Second", 42)));
+
+        List<GenericRecord> back = ParquetIO.readAll(stream);
+        assertThat(back).hasSize(2);
+        assertThat(back.get(0).get("name").toString()).isEqualTo("First");
+        assertThat(back.get(1).get("age")).isEqualTo(42);
     }
 
     @Test

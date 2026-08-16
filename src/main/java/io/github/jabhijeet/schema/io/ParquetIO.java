@@ -9,16 +9,8 @@ import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.io.*;
+import java.util.*;
 
 /**
  * In-memory Parquet write and read helpers.
@@ -71,6 +63,42 @@ public final class ParquetIO {
             throw new UncheckedIOException("Failed to write Parquet data", e);
         }
         return output.toByteArray();
+    }
+
+    /**
+     * Serializes one record to a Parquet file and returns a caller-owned stream
+     * positioned at its first byte.
+     *
+     * <p>The complete file, including its footer, is materialized in memory before
+     * the stream is returned.
+     */
+    public static InputStream toInputStream(Schema schema, GenericRecord record) {
+        return new ByteArrayInputStream(toBytes(schema, record));
+    }
+
+    /**
+     * Serializes records to a Parquet file and returns a caller-owned stream
+     * positioned at its first byte.
+     *
+     * <p>The complete file, including its footer, is materialized in memory before
+     * the stream is returned.
+     */
+    public static InputStream toInputStream(Schema schema,
+                                            Collection<? extends GenericRecord> records) {
+        return new ByteArrayInputStream(toBytes(schema, records));
+    }
+
+    /**
+     * Serializes records with {@code codec} and returns a caller-owned stream
+     * positioned at the first byte of the Parquet file.
+     *
+     * <p>The complete file, including its footer, is materialized in memory before
+     * the stream is returned.
+     */
+    public static InputStream toInputStream(Schema schema,
+                                            Collection<? extends GenericRecord> records,
+                                            CompressionCodecName codec) {
+        return new ByteArrayInputStream(toBytes(schema, records, codec));
     }
 
     public static void writeTo(Schema schema,
