@@ -8,11 +8,11 @@ A reusable Java 21 library that converts arbitrary POJO classes into Apache Avro
 
 ## Repository layout
 
-The Maven project is **nested one level deep**: the actual project root (with `pom.xml` and `src/`) is `java-pojo-to-parquet-schema/java-pojo-to-parquet-schema/`. Run Maven commands from there, not the git root.
+The Maven project root (with `pom.xml` and `src/`) is the repository root.
 
 ## Common commands
 
-Run from `java-pojo-to-parquet-schema/java-pojo-to-parquet-schema/`:
+Run from the repository root:
 
 ```bash
 mvn test                                           # run all tests

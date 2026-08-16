@@ -172,13 +172,13 @@ The Maven Enforcer requirement changed from `[21,22)` to `[21,)`. The library no
 | Artifact | 2.3.0 | 3.0.0 |
 |----------|-------|-------|
 | `org.apache.avro:avro` | 1.12.1 | 1.12.1 |
-| `org.apache.parquet:parquet-avro` | 1.17.0 | 1.17.0 |
+| `org.apache.parquet:parquet-avro` | 1.16.0 | 1.16.0 |
 | `org.apache.iceberg:iceberg-core` | 1.10.1 | 1.10.1 |
 | `org.apache.iceberg:iceberg-data` | *(removed)* | 1.10.1 |
 | `org.apache.iceberg:iceberg-parquet` | *(not present)* | 1.10.1 |
-| `com.fasterxml.jackson.core:jackson-databind` | 2.19.4 | 2.19.4 |
-| `org.apache.hadoop:hadoop-common` | 3.5.0 optional | 3.3.6 optional |
-| `org.apache.hadoop:hadoop-mapreduce-client-core` | 3.5.0 optional | 3.3.6 optional |
+| `com.fasterxml.jackson.core:jackson-databind` | 2.22.1 | 2.22.1 |
+| `org.apache.hadoop:hadoop-common` | 3.4.3 optional | 3.4.3 optional |
+| `org.apache.hadoop:hadoop-mapreduce-client-core` | 3.4.3 optional | 3.4.3 optional |
 
 `iceberg-data` and `iceberg-parquet` are now required (not optional) because `IcebergIO` uses them at runtime for in-memory table writes and reads.
 `hadoop-common` and `hadoop-mapreduce-client-core` remain `optional`; they satisfy compile-time references in `parquet-avro` and allow `ParquetIO` to run without a Hadoop installation.

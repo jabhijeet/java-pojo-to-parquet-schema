@@ -30,12 +30,12 @@ Generate tokens at: https://central.sonatype.com → **Account** → **Generate 
 ### 1. Verify tests pass
 
 ```
-D:\Tools\apache-maven-3.9.6\bin\mvn -f "D:\Projects\java-pojo-to-parquet-schema\java-pojo-to-parquet-schema\pom.xml" clean test
+D:\Tools\apache-maven-3.9.6\bin\mvn clean test
 ```
 
 ### 2. Bump version in `pom.xml`
 
-Edit `<version>` in `java-pojo-to-parquet-schema/pom.xml`. Use [Semantic Versioning](https://semver.org):
+Edit `<version>` in `pom.xml`. Use [Semantic Versioning](https://semver.org):
 
 - **Patch** (bug-fix only, no API change): `X.Y.Z+1`
 - **Minor** (new backward-compatible feature): `X.Y+1.0`
@@ -67,7 +67,7 @@ git push origin main --tags
 Run with the `release` profile. The plugin blocks until Central confirms publication.
 
 ```
-D:\Tools\apache-maven-3.9.6\bin\mvn -f "D:\Projects\java-pojo-to-parquet-schema\java-pojo-to-parquet-schema\pom.xml" clean deploy -Prelease
+D:\Tools\apache-maven-3.9.6\bin\mvn clean deploy -Prelease
 ```
 
 GPG passphrase prompt appears interactively. To suppress it (CI / scripted), set:
@@ -108,7 +108,7 @@ clean deploy -Prelease
 For local testing before a release, use a `-SNAPSHOT` version and run:
 
 ```
-D:\Tools\apache-maven-3.9.6\bin\mvn -f "D:\Projects\java-pojo-to-parquet-schema\java-pojo-to-parquet-schema\pom.xml" clean install
+D:\Tools\apache-maven-3.9.6\bin\mvn clean install
 ```
 
 This publishes to `~/.m2` only. Snapshot deployment to Central (`deploy` without `-Prelease`) goes to `https://central.sonatype.com/repository/maven-snapshots/`.
