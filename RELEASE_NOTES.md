@@ -1,5 +1,15 @@
 # Release Notes
 
+## 3.2.1
+
+### Dependency fixes
+
+- Excluded the legacy transitive `javax.annotation:javax.annotation-api`
+  dependency from `parquet-avro`.
+- No public API changes.
+
+---
+
 ## 3.2.0
 
 ### Release tooling

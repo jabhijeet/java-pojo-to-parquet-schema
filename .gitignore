@@ -79,3 +79,10 @@ replay_pid*
 *.rar
 /.kilo/
 /.github/
+/node_modules/
+/.kiro/
+/.roo/
+/.idea/
+/.cursor/
+/.claude/
+/.agent/
