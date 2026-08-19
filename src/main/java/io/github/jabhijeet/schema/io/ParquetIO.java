@@ -18,9 +18,9 @@ import java.util.*;
  * In-memory Parquet write and read helpers.
  *
  * <p>All I/O goes through {@link InMemoryOutputFile} and {@link InMemoryInputFile}.
- * No filesystem, no Hadoop {@code FileSystem}, and no {@code HADOOP_HOME} environment
- * variable required — Hadoop's {@code Configuration} class is used internally by the
- * Parquet writer but works with default settings and no Hadoop installation.
+ * No filesystem or {@code HADOOP_HOME} environment variable is required. The Parquet
+ * reader and writer use Parquet's Hadoop module and therefore require the Hadoop
+ * runtime dependencies declared by this library.
  *
  * <p>Every method closes the resources it creates. Caller-owned streams are
  * flushed but not closed.

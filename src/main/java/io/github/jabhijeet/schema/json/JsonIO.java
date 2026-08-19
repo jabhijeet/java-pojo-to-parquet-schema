@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.jabhijeet.schema.io.AvroIO;
 import io.github.jabhijeet.schema.io.IcebergIO;
 import io.github.jabhijeet.schema.io.ParquetIO;
-import io.github.jabhijeet.schema.json.infer.*;
+import io.github.jabhijeet.schema.json.infer.DefaultJsonSchemaInferrer;
+import io.github.jabhijeet.schema.json.infer.JsonSchemaInferrer;
+import io.github.jabhijeet.schema.json.infer.SchemaInferenceException;
+import io.github.jabhijeet.schema.json.infer.SchemaInferenceOptions;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.parquet.conf.ParquetConfiguration;
@@ -17,11 +20,13 @@ import java.util.Objects;
 
 /**
  * One-call facade for converting JSON documents into Avro or Parquet bytes and
- * appending to in-memory Iceberg tables, all without a filesystem or Hadoop installation.
+ * appending to in-memory Iceberg tables, all without a filesystem. Parquet methods
+ * require the transitive Hadoop runtime dependencies documented in the README.
  *
  * <p>Combines {@link JsonToGenericRecordConverter} (JSON → {@link GenericRecord}) with
  * {@link AvroIO}, {@link ParquetIO}, and {@link IcebergIO}. All operations are
- * fully in‑memory — no {@code HADOOP_HOME} or external services required.
+ * fully in‑memory — no {@code HADOOP_HOME} or external services required. The
+ * Iceberg path is Hadoop-free; the Parquet path uses {@code parquet-hadoop}.
  *
  * <p>A single shared {@link JsonToGenericRecordConverter} instance is used internally;
  * it is stateless and thread‑safe. All methods are static and can be safely
@@ -32,7 +37,6 @@ public final class JsonIO {
     private static final JsonToGenericRecordConverter CONVERTER = new JsonToGenericRecordConverter();
     private static final GenericRecordToJsonConverter TO_JSON   = new GenericRecordToJsonConverter();
     private static final JsonSchemaInferrer INFERRER = new DefaultJsonSchemaInferrer();
-    private static final InferredSchemaCache CACHE = new InferredSchemaCache();
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonIO() {
@@ -125,12 +129,7 @@ public final class JsonIO {
      */
     public static List<GenericRecord> toRecords(String json) {
         Objects.requireNonNull(json, "json");
-        JsonNode node;
-        try {
-            node = MAPPER.readTree(json);
-        } catch (Exception e) {
-            throw new SchemaInferenceException("Failed to parse JSON for schema inference", e);
-        }
+        JsonNode node = parseForInference(json);
         if (node.isArray() && node.size() > 0) {
             Schema schema = INFERRER.infer(node.get(0));
             return toRecords(json, schema);
@@ -147,12 +146,7 @@ public final class JsonIO {
         Objects.requireNonNull(json, "json");
         Objects.requireNonNull(opts, "opts");
         JsonSchemaInferrer inferrer = new DefaultJsonSchemaInferrer(opts);
-        JsonNode node;
-        try {
-            node = MAPPER.readTree(json);
-        } catch (Exception e) {
-            throw new SchemaInferenceException("Failed to parse JSON for schema inference", e);
-        }
+        JsonNode node = parseForInference(json);
         if (node.isArray() && node.size() > 0) {
             Schema schema = inferrer.infer(node.get(0));
             return toRecords(json, schema);
@@ -263,12 +257,7 @@ public final class JsonIO {
      */
     public static byte[] toAvroBytesAll(String json) {
         Objects.requireNonNull(json, "json");
-        JsonNode node;
-        try {
-            node = MAPPER.readTree(json);
-        } catch (Exception e) {
-            throw new SchemaInferenceException("Failed to parse JSON for schema inference", e);
-        }
+        JsonNode node = parseForInference(json);
         Schema schema;
         if (node.isArray() && node.size() > 0) {
             schema = INFERRER.infer(node.get(0));
@@ -286,12 +275,7 @@ public final class JsonIO {
         Objects.requireNonNull(json, "json");
         Objects.requireNonNull(opts, "opts");
         JsonSchemaInferrer inferrer = new DefaultJsonSchemaInferrer(opts);
-        JsonNode node;
-        try {
-            node = MAPPER.readTree(json);
-        } catch (Exception e) {
-            throw new SchemaInferenceException("Failed to parse JSON for schema inference", e);
-        }
+        JsonNode node = parseForInference(json);
         Schema schema;
         if (node.isArray() && node.size() > 0) {
             schema = inferrer.infer(node.get(0));
@@ -337,7 +321,7 @@ public final class JsonIO {
 
     /**
      * Converts a single JSON document to Parquet bytes (Snappy-compressed by default).
-     * No {@code HADOOP_HOME} required — uses in-memory I/O.
+     * Uses in-memory I/O; the transitive Hadoop runtime dependencies are required.
      */
     public static byte[] toParquetBytes(String json, Schema schema) {
         return ParquetIO.toBytes(schema, toRecord(json, schema));
@@ -423,7 +407,8 @@ public final class JsonIO {
 
     /**
      * Infers an Avro schema from {@code json} and converts it to Parquet bytes
-     * (Snappy-compressed by default). No {@code HADOOP_HOME} required.
+     * (Snappy-compressed by default). The transitive Hadoop runtime dependencies
+     * are required.
      */
     public static byte[] toParquetBytes(String json) {
         Objects.requireNonNull(json, "json");
@@ -448,12 +433,7 @@ public final class JsonIO {
      */
     public static byte[] toParquetBytesAll(String json) {
         Objects.requireNonNull(json, "json");
-        JsonNode node;
-        try {
-            node = MAPPER.readTree(json);
-        } catch (Exception e) {
-            throw new SchemaInferenceException("Failed to parse JSON for schema inference", e);
-        }
+        JsonNode node = parseForInference(json);
         Schema schema;
         if (node.isArray() && node.size() > 0) {
             schema = INFERRER.infer(node.get(0));
@@ -471,12 +451,7 @@ public final class JsonIO {
         Objects.requireNonNull(json, "json");
         Objects.requireNonNull(opts, "opts");
         JsonSchemaInferrer inferrer = new DefaultJsonSchemaInferrer(opts);
-        JsonNode node;
-        try {
-            node = MAPPER.readTree(json);
-        } catch (Exception e) {
-            throw new SchemaInferenceException("Failed to parse JSON for schema inference", e);
-        }
+        JsonNode node = parseForInference(json);
         Schema schema;
         if (node.isArray() && node.size() > 0) {
             schema = inferrer.infer(node.get(0));
@@ -567,12 +542,7 @@ public final class JsonIO {
      */
     public static IcebergIO.InMemoryTable toIcebergTable(String json) {
         Objects.requireNonNull(json, "json");
-        JsonNode node;
-        try {
-            node = MAPPER.readTree(json);
-        } catch (Exception e) {
-            throw new SchemaInferenceException("Failed to parse JSON for schema inference", e);
-        }
+        JsonNode node = parseForInference(json);
         Schema schema;
         if (node.isArray() && node.size() > 0) {
             schema = INFERRER.infer(node.get(0));
@@ -597,12 +567,7 @@ public final class JsonIO {
         Objects.requireNonNull(json, "json");
         Objects.requireNonNull(opts, "opts");
         JsonSchemaInferrer inferrer = new DefaultJsonSchemaInferrer(opts);
-        JsonNode node;
-        try {
-            node = MAPPER.readTree(json);
-        } catch (Exception e) {
-            throw new SchemaInferenceException("Failed to parse JSON for schema inference", e);
-        }
+        JsonNode node = parseForInference(json);
         Schema schema;
         if (node.isArray() && node.size() > 0) {
             schema = inferrer.infer(node.get(0));
@@ -622,7 +587,7 @@ public final class JsonIO {
 
     /**
      * Reads all records from Parquet bytes and converts each to a JSON string.
-     * No {@code HADOOP_HOME} required — uses in-memory I/O.
+     * Uses in-memory I/O; the transitive Hadoop runtime dependencies are required.
      */
     public static List<String> fromParquetBytes(byte[] parquetBytes) {
         return ParquetIO.readAll(parquetBytes).stream().map(TO_JSON::convert).toList();
@@ -659,5 +624,19 @@ public final class JsonIO {
      */
     public static List<String> fromAvroBytes(byte[] avroBytes) {
         return AvroIO.readAll(avroBytes).stream().map(TO_JSON::convert).toList();
+    }
+
+    private static JsonNode parseForInference(String json) {
+        try {
+            JsonNode node = MAPPER.readTree(json);
+            if (node == null || node.isMissingNode()) {
+                throw new SchemaInferenceException("JSON input is empty");
+            }
+            return node;
+        } catch (SchemaInferenceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new SchemaInferenceException("Failed to parse JSON for schema inference", e);
+        }
     }
 }

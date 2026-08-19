@@ -8,7 +8,7 @@ not publish artifacts to Maven Central.
 | Requirement | Notes |
 |-------------|-------|
 | Java 21+ | Enforced by `maven-enforcer-plugin` |
-| Maven 3.9+ | `D:\Tools\apache-maven-3.9.6\bin\mvn` on this machine |
+| Maven 3.9+ | `mvn` available on `PATH` |
 | GPG key | Must be published to a keyserver (`keys.openpgp.org` or `keyserver.ubuntu.com`) |
 | `~/.m2/settings.xml` server entry with id `central` | Username = Sonatype Central Portal token user, password = token secret |
 
@@ -33,8 +33,12 @@ Generate tokens at: https://central.sonatype.com → **Account** → **Generate 
 ### 1. Verify tests pass
 
 ```
-D:\Tools\apache-maven-3.9.6\bin\mvn clean test
+mvn clean test
 ```
+
+Parquet consumers receive `hadoop-common` and `hadoop-mapreduce-client-core`
+transitively. Verify the published POM with a consumer application that declares
+only this library before release.
 
 ### 2. Bump version in `pom.xml`
 
@@ -60,8 +64,8 @@ Change the version badge and the Maven/Gradle coordinate snippets to the new ver
 
 ```
 git add pom.xml RELEASE_NOTES.md README.md RELEASING.md src/main/java src/test/java
-git commit -m "release: 3.3.0"
-git tag v3.3.0
+ git commit -m "release: 3.4.0"
+ git tag v3.4.0
 git push origin main --tags
 ```
 
@@ -72,7 +76,7 @@ From the repository root, run with the `release` profile. The plugin reads the
 passphrase, and blocks until Central confirms publication.
 
 ```
-D:\Tools\apache-maven-3.9.6\bin\mvn clean deploy -Prelease
+mvn clean deploy -Prelease
 ```
 
 GPG passphrase prompt appears interactively. To suppress it (CI / scripted), set:
@@ -122,7 +126,7 @@ clean deploy -Prelease
 For local testing before a release, use a `-SNAPSHOT` version and run:
 
 ```
-D:\Tools\apache-maven-3.9.6\bin\mvn clean install
+mvn clean install
 ```
 
 This publishes to `~/.m2` only. Snapshot deployment to Central (`deploy` without `-Prelease`) goes to `https://central.sonatype.com/repository/maven-snapshots/`.

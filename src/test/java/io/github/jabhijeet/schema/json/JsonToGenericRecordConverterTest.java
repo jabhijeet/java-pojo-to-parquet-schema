@@ -10,6 +10,8 @@ import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -25,6 +27,33 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class JsonToGenericRecordConverterTest {
 
     private final JsonToGenericRecordConverter converter = new JsonToGenericRecordConverter();
+
+    @Test
+    void empty_string_throws_json_conversion_exception() {
+        Schema schema = record("R", field("id", "\"int\""));
+
+        assertThatThrownBy(() -> converter.convert("", schema))
+                .isInstanceOf(JsonConversionException.class)
+                .hasMessageContaining("Input is empty");
+    }
+
+    @Test
+    void empty_input_stream_throws_json_conversion_exception() {
+        Schema schema = record("R", field("id", "\"int\""));
+
+        assertThatThrownBy(() -> converter.convert(new ByteArrayInputStream(new byte[0]), schema))
+                .isInstanceOf(JsonConversionException.class)
+                .hasMessageContaining("Input is empty");
+    }
+
+    @Test
+    void empty_reader_throws_json_conversion_exception() {
+        Schema schema = record("R", field("id", "\"int\""));
+
+        assertThatThrownBy(() -> converter.convert(new StringReader(""), schema))
+                .isInstanceOf(JsonConversionException.class)
+                .hasMessageContaining("Input is empty");
+    }
 
     // ---------------------------------------------------------------- schema builders
 
@@ -617,4 +646,3 @@ class JsonToGenericRecordConverterTest {
         }
     }
 }
-

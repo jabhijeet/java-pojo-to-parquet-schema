@@ -35,8 +35,9 @@ public final class DefaultJsonSchemaInferrer implements JsonSchemaInferrer {
 
     @Override
     public Schema infer(String json) {
+        Objects.requireNonNull(json, "json");
         try {
-            return infer(DEFAULT_MAPPER.readTree(json), options.rootName());
+            return infer(mapper.readTree(json), options.rootName());
         } catch (Exception e) {
             throw new SchemaInferenceException("Failed to parse JSON for schema inference", e);
         }
@@ -49,8 +50,9 @@ public final class DefaultJsonSchemaInferrer implements JsonSchemaInferrer {
 
     @Override
     public Schema infer(String json, String rootName) {
+        Objects.requireNonNull(json, "json");
         try {
-            return infer(DEFAULT_MAPPER.readTree(json), rootName);
+            return infer(mapper.readTree(json), rootName);
         } catch (Exception e) {
             throw new SchemaInferenceException("Failed to parse JSON for schema inference", e);
         }

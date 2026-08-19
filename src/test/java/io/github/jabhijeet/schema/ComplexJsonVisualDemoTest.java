@@ -84,7 +84,7 @@ class ComplexJsonVisualDemoTest {
         System.out.println("hex : " + hexPreview(avroBytes, 128));
 
         byte[] parquetBytes = ParquetIO.toBytes(avroSchema, record);
-        printBanner("6. PARQUET binary payload (Snappy-compressed, in-memory — no HADOOP_HOME needed)");
+        printBanner("6. PARQUET binary payload (Snappy-compressed, in-memory)");
         System.out.println("size: " + parquetBytes.length + " bytes");
         System.out.println("hex : " + hexPreview(parquetBytes, 128));
 

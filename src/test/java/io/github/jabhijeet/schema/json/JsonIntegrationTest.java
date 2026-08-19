@@ -5,11 +5,13 @@ import io.github.jabhijeet.schema.TimezoneHandling;
 import io.github.jabhijeet.schema.fixtures.TemporalTypesPojo;
 import io.github.jabhijeet.schema.io.AvroIO;
 import io.github.jabhijeet.schema.io.ParquetIO;
+import io.github.jabhijeet.schema.json.infer.SchemaInferenceException;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
+import org.apache.parquet.conf.PlainParquetConfiguration;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -18,6 +20,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * End-to-end tests: JSON string â†’ bytes (Avro or Parquet) â†’ read back â†’ verify values.
@@ -25,6 +28,22 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>All I/O is in-memory. Uses {@link JsonIO} as the public entry point.
  */
 class JsonIntegrationTest {
+
+    @Test
+    void schema_less_facades_reject_empty_input_with_schema_inference_exception() {
+        assertThatThrownBy(() -> JsonIO.toRecords(""))
+                .isInstanceOf(SchemaInferenceException.class)
+                .hasMessageContaining("JSON input is empty");
+        assertThatThrownBy(() -> JsonIO.toAvroBytesAll(""))
+                .isInstanceOf(SchemaInferenceException.class)
+                .hasMessageContaining("JSON input is empty");
+        assertThatThrownBy(() -> JsonIO.toParquetBytesAll(""))
+                .isInstanceOf(SchemaInferenceException.class)
+                .hasMessageContaining("JSON input is empty");
+        assertThatThrownBy(() -> JsonIO.toIcebergTable(""))
+                .isInstanceOf(SchemaInferenceException.class)
+                .hasMessageContaining("JSON input is empty");
+    }
 
     // ---------------------------------------------------------------- schemas
 
@@ -169,6 +188,18 @@ class JsonIntegrationTest {
         assertThat(records).hasSize(2);
         assertThat(records.get(0).get("customerId").toString()).isEqualTo("C");
         assertThat(records.get(1).get("customerId").toString()).isEqualTo("D");
+    }
+
+    @Test
+    void json_facade_accepts_custom_parquet_configuration() {
+        byte[] bytes = JsonIO.toParquetBytesAll(
+                "[{\"orderId\":\"550e8400-e29b-41d4-a716-446655440000\",\"customerId\":\"X\","
+                        + "\"amount\":\"1.00\",\"placedAt\":\"2025-01-01T00:00:00Z\","
+                        + "\"items\":[],\"tags\":{}}]",
+                ORDER_SCHEMA,
+                new PlainParquetConfiguration());
+
+        assertThat(ParquetIO.readAll(bytes)).hasSize(1);
     }
 
     // ---------------------------------------------------------------- batch (JSON array)
@@ -337,4 +368,3 @@ class JsonIntegrationTest {
         assertThat(jsons.get(0)).contains("2025-06-15T10:30");
     }
 }
-

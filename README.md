@@ -2,12 +2,12 @@
 
 ![Maven Central](https://img.shields.io/maven-central/v/io.github.jabhijeet/java-pojo-to-parquet-schema?style=for-the-badge)
 
-Zero-boilerplate Java library — reflection on a POJO produces Avro/Parquet/Iceberg schemas and in-memory binary data. No code generation, no schema files, no Hadoop installation.
+Zero-boilerplate Java library — reflection on a POJO produces Avro/Parquet/Iceberg schemas and in-memory binary data. No code generation, no schema files, and no Hadoop installation or cluster infrastructure required.
 
-**Three capabilities:**
+**Capabilities:**
 
 1. **POJO → Schema** — reflect a Java class into Avro `Schema`, Parquet `MessageType`, and Iceberg `Schema`.
-2. **JSON → Avro/Parquet bytes** — infer the schema from a JSON object or array, or supply an explicit schema. No `HADOOP_HOME`.
+2. **JSON → Avro/Parquet bytes** — infer the schema from a JSON object or array, or supply an explicit schema. Parquet conversion is fully in memory and needs no `HADOOP_HOME` or Hadoop infrastructure. The library supplies the required Hadoop Java runtime artifacts transitively.
 3. **JSON → Iceberg table (in-memory)** — infer the schema and append JSON rows to a fully in-memory Iceberg table backed by `InMemoryCatalog`. No filesystem, no `HADOOP_HOME`.
 
 ---
@@ -47,18 +47,18 @@ All production code lives under `src/main/java/io/github/jabhijeet/schema/`:
 <dependency>
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>3.3.0</version>
+    <version>3.4.0</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL):**
 ```kotlin
-implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:3.3.0")
+implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:3.4.0")
 ```
 
 **Gradle (Groovy DSL):**
 ```groovy
-implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.3.0'
+implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.4.0'
 ```
 
 ### Dependencies
@@ -74,16 +74,41 @@ implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.3.0'
 | `com.fasterxml.jackson.core:jackson-databind`   | 2.22.1  | compile  |
 | `com.fasterxml.jackson.core:jackson-annotations`| 2.22    | compile  |
 | `org.slf4j:slf4j-api`                          | 2.0.17  | compile  |
-| `org.apache.hadoop:hadoop-common`              | 3.4.3   | optional |
-| `org.apache.hadoop:hadoop-mapreduce-client-core` | 3.4.3 | optional |
+| `org.apache.hadoop:hadoop-common`              | 3.4.3   | compile  |
+| `org.apache.hadoop:hadoop-mapreduce-client-core` | 3.4.3 | compile  |
 
 \* `jackson-annotations` uses Jackson's shorter per-minor version string (`2.22`) while `jackson-core` / `jackson-databind` are `2.22.1`.
 
-Hadoop deps are `optional` — they satisfy compile-time type references in `parquet-avro`. The default in-memory Parquet writer uses `PlainParquetConfiguration`, so no `HADOOP_HOME` environment variable is required. Schema-generation-only consumers can exclude them entirely.
+The library includes the Hadoop Java client artifacts transitively because `ParquetIO`
+uses Apache Parquet's Hadoop-backed `AvroParquetReader` and `AvroParquetWriter` APIs.
+This gives Parquet consumers a one-dependency setup. These are client libraries only:
+conversion remains fully in memory and does not start Hadoop services or access HDFS.
+
+**All use cases:**
+
+```xml
+<dependency>
+    <groupId>io.github.jabhijeet</groupId>
+    <artifactId>java-pojo-to-parquet-schema</artifactId>
+    <version>3.4.0</version>
+</dependency>
+```
+
+No additional Hadoop dependency declarations are required. The published POM brings
+`hadoop-common` and `hadoop-mapreduce-client-core` transitively. These are Hadoop
+**Java libraries**, not Hadoop infrastructure. Parquet conversion remains fully in
+memory and does not require `HADOOP_HOME`, HDFS, YARN, a Hadoop installation, native
+Hadoop binaries, or a cluster. If the application already manages Hadoop, keep its
+Hadoop version compatible with the version selected by this library and check
+dependency convergence.
 
 ---
 
 ## Use case 1 — POJO → Avro / Parquet / Iceberg schema
+
+Schema generation itself does not use Hadoop APIs. The examples below produce schemas
+only; the library's transitive runtime dependencies are still available for later
+Parquet conversion.
 
 ### Quick start
 
@@ -315,7 +340,10 @@ System.out.println(gen.cacheStats());        // hit/miss counters, hit ratio
 
 ## Use case 2 — JSON → Avro / Parquet bytes (in-memory)
 
-No filesystem, no `HADOOP_HOME`. All I/O is in-memory via custom `OutputFile`/`InputFile` implementations.
+No filesystem or `HADOOP_HOME` is required. Avro conversion needs only the library's
+normal dependencies. Parquet data is held in memory via custom `OutputFile`/`InputFile`
+implementations. The library supplies the required Hadoop Java runtime dependencies
+transitively; no extra application dependency declarations are needed.
 
 ### Schema-free conversion
 
@@ -350,6 +378,111 @@ byte[] parquetBytes = JsonIO.toParquetBytes(json);
 GenericRecord avroRecord = AvroIO.fromBytes(avroBytes);
 GenericRecord parquetRecord = ParquetIO.fromBytes(parquetBytes);
 ```
+
+The `JsonIO.toParquetBytes`, `JsonIO.toParquetBytesAll`, `JsonIO.toParquetInputStream`,
+and `JsonIO.fromParquetBytes` methods use the same Parquet runtime requirement as
+`ParquetIO`. The Avro counterparts do not require Hadoop artifacts.
+
+### Complete `JsonIO.toParquetBytesAll` example
+
+For a JSON array with a known data contract, generate or define an Avro schema and
+pass it to `JsonIO.toParquetBytesAll`. The following is a complete Maven-based
+example. The application remains fully in memory; the transitive Hadoop dependencies
+are Java client libraries required by Apache Parquet's reader/writer implementation,
+not a Hadoop installation or cluster.
+
+Add the library to the application `pom.xml`:
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>io.github.jabhijeet</groupId>
+        <artifactId>java-pojo-to-parquet-schema</artifactId>
+        <version>3.4.0</version>
+    </dependency>
+
+</dependencies>
+```
+
+No separate Hadoop dependency declarations are needed. The library POM includes
+`hadoop-common` and `hadoop-mapreduce-client-core` transitively.
+
+Use the API from Java:
+
+```java
+import io.github.jabhijeet.schema.json.JsonIO;
+import org.apache.avro.Schema;
+
+import java.util.List;
+
+public final class JsonBatchToParquet {
+    private static final Schema ORDER_SCHEMA = new Schema.Parser().parse("""
+            {
+              "type": "record",
+              "name": "Order",
+              "namespace": "example",
+              "fields": [
+                {"name": "orderId", "type": "string"},
+                {"name": "customerId", "type": "string"},
+                {"name": "quantity", "type": "int"},
+                {"name": "paid", "type": "boolean"}
+              ]
+            }
+            """);
+
+    static void main(String[] args) {
+        String jsonBatch = """
+                [
+                  {"orderId":"ord-1001","customerId":"CUST-001","quantity":2,"paid":true},
+                  {"orderId":"ord-1002","customerId":"CUST-002","quantity":1,"paid":false}
+                ]
+                """;
+
+        // Creates a complete Snappy-compressed Parquet file in memory.
+        byte[] parquetBytes = JsonIO.toParquetBytesAll(jsonBatch, ORDER_SCHEMA);
+
+        // Read the in-memory bytes back; no file or Hadoop installation is involved.
+        List<String> records = JsonIO.fromParquetBytes(parquetBytes);
+        System.out.println(records.size());
+        System.out.println(records.get(0));
+    }
+}
+```
+
+`JsonIO.toParquetBytesAll(jsonBatch, schema)` uses Snappy compression and the
+library's default `PlainParquetConfiguration`. A custom configuration is optional:
+
+```java
+import org.apache.parquet.conf.PlainParquetConfiguration;
+
+byte[] parquetBytes = JsonIO.toParquetBytesAll(
+        jsonBatch,
+        ORDER_SCHEMA,
+        new PlainParquetConfiguration());
+```
+
+The explicit-schema overload validates every array element against the supplied
+schema. A missing required field, incompatible value, or malformed JSON throws a
+path-qualified `JsonConversionException`. For large or untrusted input, use the
+size-limited overload:
+
+```java
+byte[] parquetBytes = JsonIO.toParquetBytesAll(
+        jsonBatch,
+        ORDER_SCHEMA,
+        10 * 1024 * 1024); // maximum JSON length in characters
+```
+
+For schema-free ingestion, the library can infer the schema from the first array
+element:
+
+```java
+byte[] parquetBytes = JsonIO.toParquetBytesAll(jsonBatch);
+```
+
+Use the inferred-schema overload when the JSON shape is trusted and a generated
+schema is acceptable. Use the explicit-schema overload when field types, required
+fields, logical types, or compatibility with an external data contract matter.
 
 The default inference mapping is deliberately conservative:
 
@@ -704,7 +837,10 @@ the field is required.
 
 ## Use case 3 — JSON → Iceberg table (in-memory)
 
-Fully in-memory: uses Iceberg's `InMemoryCatalog` and `InMemoryFileIO`. Data is written in Parquet format via `iceberg-parquet` (uses `parquet-column`, not `parquet-hadoop`). No filesystem, no `HADOOP_HOME`.
+Fully in-memory: uses Iceberg's `InMemoryCatalog` and `InMemoryFileIO`. Data is written
+in Parquet format via `iceberg-parquet` (uses `parquet-column`, not the Hadoop-backed
+`ParquetIO` path). Iceberg in-memory conversion does not require Hadoop client
+artifacts, a filesystem, `HADOOP_HOME`, or a Hadoop installation.
 
 The schema can also be inferred directly. A JSON object creates one row; a JSON
 array infers the table schema from its first element and appends all rows.

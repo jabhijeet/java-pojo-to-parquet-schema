@@ -20,7 +20,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Verifies that {@link ParquetIO} can write and read Parquet fully in-memory
- * without a filesystem or HADOOP_HOME environment variable.
+ * without a filesystem or HADOOP_HOME environment variable. Hadoop runtime
+ * dependencies are supplied by the Maven test classpath.
  */
 class ParquetIOTest {
 
@@ -64,6 +65,13 @@ class ParquetIOTest {
                 new PlainParquetConfiguration());
 
         assertThat(ParquetIO.readAll(bytes)).hasSize(1);
+    }
+
+    @Test
+    void default_configuration_writes_and_reads_without_hadoop_home() {
+        byte[] bytes = ParquetIO.toBytes(PERSON_SCHEMA, buildPerson("Default", 32));
+
+        assertThat(ParquetIO.fromBytes(bytes).get("name").toString()).isEqualTo("Default");
     }
 
     @Test

@@ -123,7 +123,9 @@ public final class JsonToGenericRecordConverter {
     public GenericRecord convert(InputStream in, Schema schema) {
         Objects.requireNonNull(in, "in");
         try (InputStream owned = in) {
-            return convert(mapper.readTree(owned), schema);
+            JsonNode node = mapper.readTree(owned);
+            if (node == null || node.isMissingNode()) throw new JsonConversionException("$", "Input is empty");
+            return convert(node, schema);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to read JSON input", e);
         }
@@ -136,7 +138,9 @@ public final class JsonToGenericRecordConverter {
     public GenericRecord convert(Reader reader, Schema schema) {
         Objects.requireNonNull(reader, "reader");
         try (Reader owned = reader) {
-            return convert(mapper.readTree(owned), schema);
+            JsonNode node = mapper.readTree(owned);
+            if (node == null || node.isMissingNode()) throw new JsonConversionException("$", "Input is empty");
+            return convert(node, schema);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to read JSON input", e);
         }
@@ -759,7 +763,9 @@ public final class JsonToGenericRecordConverter {
 
     private JsonNode parse(String json) {
         try {
-            return mapper.readTree(json);
+            JsonNode node = mapper.readTree(json);
+            if (node == null || node.isMissingNode()) throw new JsonConversionException("$", "Input is empty");
+            return node;
         } catch (IOException e) {
             throw new JsonConversionException("$", "Input is not valid JSON", e);
         }
@@ -791,4 +797,3 @@ public final class JsonToGenericRecordConverter {
         return Objects.requireNonNull(json, "json").getBytes(StandardCharsets.UTF_8);
     }
 }
-

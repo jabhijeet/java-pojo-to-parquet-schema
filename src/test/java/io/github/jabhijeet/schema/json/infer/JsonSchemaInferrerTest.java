@@ -1,5 +1,7 @@
 package io.github.jabhijeet.schema.json.infer;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.jabhijeet.schema.FieldNamingStrategy;
@@ -181,4 +183,16 @@ class JsonSchemaInferrerTest {
         assertThat(schema.getField("items").schema().getElementType().getType())
                 .isEqualTo(Schema.Type.STRING);
     }
+
+    @Test
+    void custom_mapper_is_used_for_string_input() {
+        ObjectMapper mapper = new ObjectMapper(JsonFactory.builder()
+                .enable(JsonReadFeature.ALLOW_JAVA_COMMENTS)
+                .build());
+        DefaultJsonSchemaInferrer inferrer = new DefaultJsonSchemaInferrer(
+                mapper, SchemaInferenceOptions.defaults());
+
+        assertThat(inferrer.infer("{/* comment */\"id\":1}").getField("id")).isNotNull();
+    }
+
 }

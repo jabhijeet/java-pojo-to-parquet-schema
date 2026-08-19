@@ -21,7 +21,7 @@ mvn package                                        # build jar + sources jar + j
 mvn install                                        # publish to local ~/.m2
 ```
 
-On this machine Maven lives at `D:\Tools\apache-maven-3.9.6\bin\mvn` and is not on `PATH`; use the absolute path if `mvn` is not resolvable.
+If `mvn` is not resolvable, use the Maven executable configured for your environment.
 
 ## Architecture
 

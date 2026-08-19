@@ -16,7 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration: JSON string → GenericRecord → Avro bytes + Parquet bytes,
- * then read back and verify. All in-memory, no HADOOP_HOME required.
+ * then read back and verify. All in-memory, with Hadoop runtime dependencies
+ * supplied by the Maven test classpath and no HADOOP_HOME required.
  */
 class JsonToAvroParquetIntegrationTest {
 

@@ -1,11 +1,42 @@
 # Release Notes
 
+## 3.4.0
+
+### Dependency guidance and in-memory I/O
+
+- Clarified that all conversion paths are in memory and require no
+  `HADOOP_HOME`, HDFS, YARN, Hadoop installation, native Hadoop binaries, or
+  Hadoop cluster.
+- Added `hadoop-common` and `hadoop-mapreduce-client-core` as transitive runtime
+  dependencies so `ParquetIO` and JSON-to-Parquet work from the library's single
+  Maven or Gradle coordinate.
+- Added dependency management for Hadoop's overlapping transitive libraries and
+  retained Maven dependency-convergence enforcement.
+- Documented that the included Hadoop artifacts are Java client libraries only;
+  conversion remains in memory and requires no Hadoop infrastructure.
+
+### JSON conversion fixes
+
+- Fixed `DefaultJsonSchemaInferrer` string overloads so configured Jackson
+  `ObjectMapper` instances are honored.
+- Empty JSON strings, input streams, and readers now produce
+  `JsonConversionException` instead of `NullPointerException`.
+- Schema-less `JsonIO` Avro, Parquet, and Iceberg entry points now reject empty
+  input with `SchemaInferenceException` instead of `NullPointerException`.
+- Added regression tests for custom mapper behavior, empty input handling,
+  default Parquet round trips, and JSON facade Parquet configuration.
+
+---
+
 ## 3.3.0
 
 ### Parquet configuration
 
 - Fixed in-memory Parquet writes when Hadoop is absent at runtime by using
   Parquet's `PlainParquetConfiguration` by default.
+- Parquet Hadoop runtime dependencies were optional in 3.3.0 for schema-only and
+  Iceberg consumers, but were required when using `ParquetIO` because
+  `AvroParquetReader` requires Hadoop classes during class loading.
 - Added configuration overrides to `ParquetIO.toBytes` and
   `JsonIO.toParquetBytesAll` through `ParquetConfiguration`.
 
@@ -223,11 +254,11 @@ The Maven Enforcer requirement changed from `[21,22)` to `[21,)`. The library no
 | `org.apache.iceberg:iceberg-data` | *(removed)* | 1.10.1 |
 | `org.apache.iceberg:iceberg-parquet` | *(not present)* | 1.10.1 |
 | `com.fasterxml.jackson.core:jackson-databind` | 2.22.1 | 2.22.1 |
-| `org.apache.hadoop:hadoop-common` | 3.4.3 optional | 3.4.3 optional |
-| `org.apache.hadoop:hadoop-mapreduce-client-core` | 3.4.3 optional | 3.4.3 optional |
+| `org.apache.hadoop:hadoop-common` | 3.4.3 optional | 3.4.3 compile |
+| `org.apache.hadoop:hadoop-mapreduce-client-core` | 3.4.3 optional | 3.4.3 compile |
 
 `iceberg-data` and `iceberg-parquet` are now required (not optional) because `IcebergIO` uses them at runtime for in-memory table writes and reads.
-`hadoop-common` and `hadoop-mapreduce-client-core` remain `optional`; they satisfy compile-time references in `parquet-avro` and allow `ParquetIO` to run without a Hadoop installation.
+`hadoop-common` and `hadoop-mapreduce-client-core` are now transitive; they satisfy runtime references in `parquet-avro` and allow `ParquetIO` to work from the library's single dependency coordinate without a Hadoop installation.
 
 ---
 
