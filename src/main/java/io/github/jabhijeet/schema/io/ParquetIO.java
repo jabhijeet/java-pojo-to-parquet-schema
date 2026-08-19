@@ -5,6 +5,8 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.avro.AvroParquetWriter;
+import org.apache.parquet.conf.ParquetConfiguration;
+import org.apache.parquet.conf.PlainParquetConfiguration;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
@@ -43,12 +45,21 @@ public final class ParquetIO {
     public static byte[] toBytes(Schema schema,
                                  Collection<? extends GenericRecord> records,
                                  CompressionCodecName codec) {
+        return toBytes(schema, records, codec, new PlainParquetConfiguration());
+    }
+
+    public static byte[] toBytes(Schema schema,
+                                 Collection<? extends GenericRecord> records,
+                                 CompressionCodecName codec,
+                                 ParquetConfiguration configuration) {
         Objects.requireNonNull(schema, "schema");
         Objects.requireNonNull(records, "records");
         Objects.requireNonNull(codec, "codec");
+        Objects.requireNonNull(configuration, "configuration");
 
         InMemoryOutputFile output = new InMemoryOutputFile();
         try (ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(output)
+                .withConf(configuration)
                 .withSchema(schema)
                 .withDataModel(GenericData.get())
                 .withCompressionCodec(codec)

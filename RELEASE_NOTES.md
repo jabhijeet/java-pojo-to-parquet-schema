@@ -1,5 +1,21 @@
 # Release Notes
 
+## 3.3.0
+
+### Parquet configuration
+
+- Fixed in-memory Parquet writes when Hadoop is absent at runtime by using
+  Parquet's `PlainParquetConfiguration` by default.
+- Added configuration overrides to `ParquetIO.toBytes` and
+  `JsonIO.toParquetBytesAll` through `ParquetConfiguration`.
+
+```java
+byte[] parquet = JsonIO.toParquetBytesAll(
+        batch, schema, new PlainParquetConfiguration());
+```
+
+---
+
 ## 3.2.1
 
 ### Dependency fixes

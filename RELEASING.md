@@ -59,9 +59,9 @@ Change the version badge and the Maven/Gradle coordinate snippets to the new ver
 ### 5. Commit and tag
 
 ```
-git add pom.xml RELEASE_NOTES.md README.md
-git commit -m "release: X.Y.Z"
-git tag vX.Y.Z
+git add pom.xml RELEASE_NOTES.md README.md RELEASING.md src/main/java src/test/java
+git commit -m "release: 3.3.0"
+git tag v3.3.0
 git push origin main --tags
 ```
 

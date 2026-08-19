@@ -47,18 +47,18 @@ All production code lives under `src/main/java/io/github/jabhijeet/schema/`:
 <dependency>
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>3.2.1</version>
+    <version>3.3.0</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL):**
 ```kotlin
-implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:3.2.1")
+implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:3.3.0")
 ```
 
 **Gradle (Groovy DSL):**
 ```groovy
-implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.2.1'
+implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.3.0'
 ```
 
 ### Dependencies
@@ -79,7 +79,7 @@ implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.2.1'
 
 \* `jackson-annotations` uses Jackson's shorter per-minor version string (`2.22`) while `jackson-core` / `jackson-databind` are `2.22.1`.
 
-Hadoop deps are `optional` — they satisfy compile-time type references in `parquet-avro` and allow `ParquetIO` to run. No `HADOOP_HOME` environment variable is required. Schema-generation-only consumers can exclude them entirely.
+Hadoop deps are `optional` — they satisfy compile-time type references in `parquet-avro`. The default in-memory Parquet writer uses `PlainParquetConfiguration`, so no `HADOOP_HOME` environment variable is required. Schema-generation-only consumers can exclude them entirely.
 
 ---
 
@@ -421,6 +421,7 @@ loaded from a registry, or must carry Avro logical types:
 import io.github.jabhijeet.schema.PojoSchemaGenerator;
 import io.github.jabhijeet.schema.json.JsonIO;
 import org.apache.avro.Schema;
+import org.apache.parquet.conf.PlainParquetConfiguration;
 
 Schema schema = PojoSchemaGenerator.toAvro(Order.class);
 
@@ -436,6 +437,10 @@ byte[] parquetBytes = JsonIO.toParquetBytes(json, schema);
 String batch = "[{...},{...}]";
 byte[] avroBatch    = JsonIO.toAvroBytesAll(batch, schema);
 byte[] parquetBatch = JsonIO.toParquetBytesAll(batch, schema);
+
+// Optional custom Parquet configuration
+byte[] configuredParquetBatch = JsonIO.toParquetBytesAll(
+        batch, schema, new PlainParquetConfiguration());
 
 // Size-guarded variants (rejects input exceeding limit before parsing)
 byte[] avroSafe = JsonIO.toAvroBytes(json, schema, 10 * 1024 * 1024); // 10 MB limit

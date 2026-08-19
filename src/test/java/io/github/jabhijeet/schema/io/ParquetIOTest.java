@@ -9,6 +9,7 @@ import io.github.jabhijeet.schema.json.JsonToGenericRecordConverter;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.parquet.conf.PlainParquetConfiguration;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
@@ -53,6 +54,16 @@ class ParquetIOTest {
         assertThat(back.get(0).get("name").toString()).isEqualTo("Bob");
         assertThat(back.get(1).get("age")).isEqualTo(35);
         assertThat(back.get(2).get("name").toString()).isEqualTo("Dave");
+    }
+
+    @Test
+    void custom_configuration_writes_parquet() {
+        byte[] bytes = ParquetIO.toBytes(PERSON_SCHEMA,
+                List.of(buildPerson("Configured", 31)),
+                ParquetIO.DEFAULT_CODEC,
+                new PlainParquetConfiguration());
+
+        assertThat(ParquetIO.readAll(bytes)).hasSize(1);
     }
 
     @Test

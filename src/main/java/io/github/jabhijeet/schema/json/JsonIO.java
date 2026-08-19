@@ -8,6 +8,7 @@ import io.github.jabhijeet.schema.io.ParquetIO;
 import io.github.jabhijeet.schema.json.infer.*;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.parquet.conf.ParquetConfiguration;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -364,6 +365,16 @@ public final class JsonIO {
      */
     public static byte[] toParquetBytesAll(String json, Schema schema) {
         return ParquetIO.toBytes(schema, toRecords(json, schema));
+    }
+
+    /**
+     * Converts a JSON array (or single object) to Parquet bytes using the supplied
+     * Parquet configuration.
+     */
+    public static byte[] toParquetBytesAll(String json, Schema schema,
+                                           ParquetConfiguration configuration) {
+        return ParquetIO.toBytes(schema, toRecords(json, schema),
+                ParquetIO.DEFAULT_CODEC, configuration);
     }
 
     /**
