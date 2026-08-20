@@ -1,5 +1,21 @@
 # Release Notes
 
+## 3.6.0
+
+### OSS parent metadata cleanup
+
+- Excluded unused `jsch`, JSR-305, J2ObjC, Error Prone annotations, Gson, and
+  Netty branches that caused license scanners to discover legacy
+  `org.sonatype.oss:oss-parent` versions 6, 7, and 9 through upstream POM
+  metadata.
+- Avoided replacement dependencies because these artifacts are not used by the
+  library's in-memory Avro, Parquet, or Iceberg paths.
+- Preserved the Hadoop classes required by Apache Parquet and retained
+  `jts-core`, which Parquet requires during runtime initialization.
+- No public API changes.
+
+---
+
 ## 3.5.0
 
 ### Dependency cleanup

@@ -47,18 +47,18 @@ All production code lives under `src/main/java/io/github/jabhijeet/schema/`:
 <dependency>
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>3.5.0</version>
+    <version>3.6.0</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL):**
 ```kotlin
-implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:3.5.0")
+implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:3.6.0")
 ```
 
 **Gradle (Groovy DSL):**
 ```groovy
-implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.5.0'
+implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.6.0'
 ```
 
 ### Dependencies
@@ -82,9 +82,9 @@ implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.5.0'
 The library includes the minimal Hadoop Java client artifacts transitively because
 `ParquetIO` uses Apache Parquet's Hadoop-backed `AvroParquetReader` and
 `AvroParquetWriter` APIs. Unused Hadoop YARN, Jersey, Jetty, WebSocket, Servlet,
-JAXB, Guice, and related web-stack branches are excluded. These are client libraries
-only: conversion remains fully in memory and does not start Hadoop services or access
-HDFS.
+JAXB, Guice, JSch, Gson, Netty, and annotation-only branches are excluded. These
+are client libraries only: conversion remains fully in memory and does not start
+Hadoop services or access HDFS.
 
 **All use cases:**
 
@@ -92,7 +92,7 @@ HDFS.
 <dependency>
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>3.5.0</version>
+    <version>3.6.0</version>
 </dependency>
 ```
 
@@ -400,7 +400,7 @@ Add the library to the application `pom.xml`:
     <dependency>
         <groupId>io.github.jabhijeet</groupId>
         <artifactId>java-pojo-to-parquet-schema</artifactId>
-        <version>3.5.0</version>
+        <version>3.6.0</version>
     </dependency>
 
 </dependencies>
