@@ -1,5 +1,20 @@
 # Release Notes
 
+## 3.5.0
+
+### Dependency cleanup
+
+- Removed unused Hadoop YARN client, server, and web-stack transitive branches.
+- Removed unused Jersey, Jetty, WebSocket, Servlet, JSP, JAXB, Activation, RE2J,
+  Guice, and AOP Alliance dependencies from the resolved runtime graph.
+- Kept `org.locationtech.jts:jts-core` because Apache Parquet initializes a
+  runtime stringifier that requires JTS classes.
+- Preserved `hadoop-common` and `hadoop-mapreduce-client-core` because
+  `ParquetIO` uses Apache Parquet's Hadoop-backed reader and writer APIs.
+- No public API changes.
+
+---
+
 ## 3.4.0
 
 ### Dependency guidance and in-memory I/O

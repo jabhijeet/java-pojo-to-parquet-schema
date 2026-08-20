@@ -7,7 +7,7 @@ Zero-boilerplate Java library — reflection on a POJO produces Avro/Parquet/Ice
 **Capabilities:**
 
 1. **POJO → Schema** — reflect a Java class into Avro `Schema`, Parquet `MessageType`, and Iceberg `Schema`.
-2. **JSON → Avro/Parquet bytes** — infer the schema from a JSON object or array, or supply an explicit schema. Parquet conversion is fully in memory and needs no `HADOOP_HOME` or Hadoop infrastructure. The library supplies the required Hadoop Java runtime artifacts transitively.
+2. **JSON → Avro/Parquet bytes** — infer the schema from a JSON object or array, or supply an explicit schema. Parquet conversion is fully in memory and needs no `HADOOP_HOME` or Hadoop infrastructure. The library supplies the minimal Hadoop Java runtime artifacts transitively.
 3. **JSON → Iceberg table (in-memory)** — infer the schema and append JSON rows to a fully in-memory Iceberg table backed by `InMemoryCatalog`. No filesystem, no `HADOOP_HOME`.
 
 ---
@@ -47,18 +47,18 @@ All production code lives under `src/main/java/io/github/jabhijeet/schema/`:
 <dependency>
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>3.4.0</version>
+    <version>3.5.0</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL):**
 ```kotlin
-implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:3.4.0")
+implementation("io.github.jabhijeet:java-pojo-to-parquet-schema:3.5.0")
 ```
 
 **Gradle (Groovy DSL):**
 ```groovy
-implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.4.0'
+implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.5.0'
 ```
 
 ### Dependencies
@@ -79,10 +79,12 @@ implementation 'io.github.jabhijeet:java-pojo-to-parquet-schema:3.4.0'
 
 \* `jackson-annotations` uses Jackson's shorter per-minor version string (`2.22`) while `jackson-core` / `jackson-databind` are `2.22.1`.
 
-The library includes the Hadoop Java client artifacts transitively because `ParquetIO`
-uses Apache Parquet's Hadoop-backed `AvroParquetReader` and `AvroParquetWriter` APIs.
-This gives Parquet consumers a one-dependency setup. These are client libraries only:
-conversion remains fully in memory and does not start Hadoop services or access HDFS.
+The library includes the minimal Hadoop Java client artifacts transitively because
+`ParquetIO` uses Apache Parquet's Hadoop-backed `AvroParquetReader` and
+`AvroParquetWriter` APIs. Unused Hadoop YARN, Jersey, Jetty, WebSocket, Servlet,
+JAXB, Guice, and related web-stack branches are excluded. These are client libraries
+only: conversion remains fully in memory and does not start Hadoop services or access
+HDFS.
 
 **All use cases:**
 
@@ -90,7 +92,7 @@ conversion remains fully in memory and does not start Hadoop services or access 
 <dependency>
     <groupId>io.github.jabhijeet</groupId>
     <artifactId>java-pojo-to-parquet-schema</artifactId>
-    <version>3.4.0</version>
+    <version>3.5.0</version>
 </dependency>
 ```
 
@@ -398,14 +400,15 @@ Add the library to the application `pom.xml`:
     <dependency>
         <groupId>io.github.jabhijeet</groupId>
         <artifactId>java-pojo-to-parquet-schema</artifactId>
-        <version>3.4.0</version>
+        <version>3.5.0</version>
     </dependency>
 
 </dependencies>
 ```
 
 No separate Hadoop dependency declarations are needed. The library POM includes
-`hadoop-common` and `hadoop-mapreduce-client-core` transitively.
+`hadoop-common` and `hadoop-mapreduce-client-core` transitively, with unused Hadoop
+YARN and web-stack branches excluded.
 
 Use the API from Java:
 
@@ -999,7 +1002,7 @@ Iceberg Record ──► Avro GenericRecord ──► JSON
 - **Apache Avro 1.12.1** — addresses CVE-2025-33042 (fixed in 1.11.5+)
 - **Apache Parquet 1.16.0** — addresses CVE-2025-30065 and CVE-2025-46762 (fixed in 1.15.2+)
 - **Jackson 2.22.1** — resolves CVE-2026-54512 and CVE-2026-54513 (arbitrary class instantiation via polymorphic-type validator bypasses, both CVSS 8.1), CVE-2026-54514 (SSRF via `InetSocketAddress` eager DNS resolution), CVE-2026-54515 (`@JsonIgnoreProperties` deserialization bypass), and CVE-2026-59888 (`@JsonIgnore` bypass via `PropertyNamingStrategy`). `jackson-annotations` is pinned to `2.22` because Jackson versions annotations separately from core/databind.
-- **Apache Hadoop 3.4.3** *(optional)* — addresses CVE-2024-23454 (local temp-file information disclosure; fixed in the 3.4.x line).
+- **Apache Hadoop 3.4.3** — addresses CVE-2024-23454 (local temp-file information disclosure; fixed in the 3.4.x line). Unused Hadoop YARN and web-stack branches are excluded.
 
 For production deployments:
 - Scan dependencies with OWASP Dependency Check, Snyk, or Dependabot.
